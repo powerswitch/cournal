@@ -29,13 +29,15 @@ from zope.interface import implementer
 
 from twisted.cred import portal, checkers
 from twisted.spread import pb
-from twisted.internet import reactor
+from twisted.internet import reactor, protocol
 from twisted.internet.error import *
 from twisted.python.failure import Failure
+from twisted.protocols.basic import LineReceiver
+
 
 from cournal import __versionstring__ as cournal_version
 from cournal.document.stroke import Stroke
-
+from cournal.httpserver.httpserver import Httpserver
 
 # 0 - none
 # 1 - minimal
@@ -427,11 +429,14 @@ class CmdlineParser():
                             help="Interval in seconds within which to save modified documents to permanent storage. Set to 0 to disable autosave.")
         parser.add_argument("-v", "--version", action="version",
                             version="%(prog)s " + cournal_version)
+        parser.add_argument("-b", "--backend", dest="backend", action="store_const", const=True, default=False,
+                            help="Create HTTP server backend on port 8000")
         args = parser.parse_args()
         
         self.port = args.port[0]
         self.autosave_directory = args.autosave_directory[0]
         self.autosave_interval = args.autosave_interval[0]
+        self.backend = args.backend
         return self
 
 def filename_to_docname(filename):
@@ -501,6 +506,17 @@ def main():
         return 1
     debug(2, "Listening on port", port)
 
+    if args.backend:
+        backend = protocol.ServerFactory()
+        backend.protocol = Httpserver
+        backend.protocol.realm = realm
+        try:
+            #reactor.listenTCP(8000, backend)
+            reactor.listenTCP(8000, backend)
+            debug(2, "HTTP server ready")
+        except CannotListenError as err:
+            debug(0, "ERROR: HTTP server failed to listen on port", err.port)
+    
     reactor.run()
 
 def debug(level, *args):
