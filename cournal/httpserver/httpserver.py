@@ -21,8 +21,12 @@
 
 from twisted.internet import reactor, protocol
 from twisted.protocols.basic import LineReceiver
+from cournal.network import network
+from cournal.document.document import Document
+from cournal.document import xojparser
 import sys
 import cgi
+import cournal
 
 # 0 - none
 # 1 - minimal
@@ -45,6 +49,8 @@ Content-Type: {ctype}
     whitelist = [
         "/templates/default/style.css",
         "/templates/default/image/cournal.svg",
+        "/templates/default/image/download.png",
+        "/templates/default/image/download_highlight.png",
         "/status.html",
         "/imprint.html",
         "/",
@@ -69,15 +75,26 @@ Content-Type: {ctype}
         </table>
         """
         return output.format(
-            cournal_users="unknown",
+            cournal_users=self.count_users(),
             http_users=http_users
         )
+
+    def count_users(self):
+        count = 0
+        for document in self.realm.server.documents:
+            count = count + len(self.realm.server.documents[document].users)
+        return count
     
     def HTML_documents(self):
         output = "<h1>Documents</h1><div id='doclist'>"
         row = """<div class='dlrow'>
                     <div class='dlsymbols'>
-                        <a href='/pdf/{documentname}.pdf'>[dwnld]</a>
+                        <a href='/pdf/{documentname}.pdf'>
+                            <img src='/templates/default/image/download.png'
+                                 alt='[dwnld]'
+                                 onmouseover='src="/templates/default/image/download_highlight.png"'
+                                 onmouseout='src="/templates/default/image/download.png"'
+                                 /></a>
                     </div>
                     <div class='dlname'>
                         {documentname}
@@ -93,22 +110,33 @@ Content-Type: {ctype}
         output = output + "</div>"
         return output
         
-    def send(self, output, ctype="text/html", status=200, version=0.1):
+    def send(self, output, ctype="text/html", status=200, version=0.1, binary=False):
         """ Send HTTP data over the network connection """
-        header = self.header_template.format(
-            length=len(output),
-            ctype=ctype,
-            output=output,
-            status=status,
-            version=version
-        )
-        self.transport.write(header.encode())
+        if binary:
+            header = self.header_template.format(
+                length=len(output),
+                ctype=ctype,
+                status=status,
+                version=version,
+                output=""
+            ).encode()
+            header = header + output
+        else:
+            header = self.header_template.format(
+                length=len(output),
+                ctype=ctype,
+                status=status,
+                version=version,
+                output=output
+            ).encode()
+            
+        self.transport.write(header)
 
     def template(self, output):
         """ Put the specific output into the template """
         try:
-            template_top = open("templates/default/top.html","r")
-            template_bottom = open("templates/default/bottom.html","r")
+            template_top = open(cournal.__path__[0]+"/httpserver/templates/default/top.html","r")
+            template_bottom = open(cournal.__path__[0]+"/httpserver/templates/default/bottom.html","r")
             output = '{}{}{}'.format(
                 template_top.read(),
                 output,
@@ -130,14 +158,29 @@ Content-Type: {ctype}
         self.whitelist
         http_users += 1
         debug(3, "connection",http_users,"made")
-        
+
         for document in self.realm.server.documents:
             self.whitelist.append("/pdf/"+document+".pdf")
 
         #print(self.realm.server.documents)
+
+    def on_connected(self):
+        print("connected")
+
+    def render_web_pdf(self):
+        # Open a preview document
+        # TODO: This is not, what I was looking for :( Need more time!
+        document = Document(cournal.__path__[0]+"/httpserver/documents/webpreview.pdf")
+        network.set_document(document)
+        connection = network.connect("127.0.0.1", self.dport)
+        document.export_pdf("output.pdf")
+        readfile = open("output.pdf","rb")
+        output = readfile.read()
+
         
     def lineReceived(self, data):
         """ If a readable line is received """
+        binary = False;
         if data.decode().upper().find("GET") >= 0:
             getfile = data.decode().split(" ")[1]
             debug(3, "GET ", getfile)
@@ -157,16 +200,28 @@ Content-Type: {ctype}
                     ctype = "text/html; charset=utf-8"
                 # PDF
                 elif getfile.find("/pdf/") >= 0: #TODO: Security bug
-                    #TODO: look fot it  in self.realm.server.documents
-                    output = "No PDF creation implemented yet :("
-                    status = 404
-                    ctype = "text/plain; charset=utf-8"
+
+                    #TODO: look for it  in self.realm.server.documents
+                    output = self.render_web_pdf()
+                    status = 200
+                    ctype = "application/pdf"
+                    binary = True;
+                    
+                    #print(connection)
+                    #d.addCallbacks(self.on_connected)
+                    
+                    #output = "No PDF creation implemented yet :("
+                    #status = 404
+                    #ctype = "text/plain; charset=utf-8"
                 
                 # try to open files
                 else:
                     ''' Try to open the file '''
                     try:
-                        readfile = open(getfile[1:],"r")
+                        if getfile[-4:] == ".png":
+                            readfile = open(cournal.__path__[0]+"/httpserver"+getfile,"rb")
+                        else:
+                            readfile = open(cournal.__path__[0]+"/httpserver"+getfile,"r")
                         output = readfile.read()
                         status = 200
                         #ctype
@@ -176,6 +231,9 @@ Content-Type: {ctype}
                             ctype = "text/html; charset=utf-8"
                         elif getfile.find(".svg") >= 0:
                             ctype = "image/svg+xml; charset=utf-8"
+                        elif getfile.find(".png") >= 0:
+                            ctype = "image/png"
+                            binary = True
                         elif getfile.find(".xoj") >= 0:
                             ctype = "text/xml; charset=utf-8"
                         elif getfile.find(".pdf") >= 0:
@@ -196,7 +254,7 @@ Content-Type: {ctype}
                 if getfile.find(".html") >= 0:
                     output = self.template(output)
                 
-                self.send(output,ctype=ctype,status=status)
+                self.send(output,ctype=ctype,status=status,binary=binary)
             
             else:
                 self.send(
