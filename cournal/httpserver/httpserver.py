@@ -27,6 +27,7 @@ from cournal.document import xojparser
 import sys
 import cgi
 import cournal
+import urllib.parse
 
 # 0 - none
 # 1 - minimal
@@ -51,6 +52,8 @@ Content-Type: {ctype}
         "/templates/default/image/cournal.svg",
         "/templates/default/image/download.png",
         "/templates/default/image/download_highlight.png",
+        "/templates/default/image/preview.png",
+        "/templates/default/image/preview_highlight.png",
         "/status.html",
         "/imprint.html",
         "/",
@@ -92,9 +95,17 @@ Content-Type: {ctype}
                         <a href='/pdf/{documentname}.pdf'>
                             <img src='/templates/default/image/download.png'
                                  alt='[dwnld]'
-                                 onmouseover='src="/templates/default/image/download_highlight.png"'
-                                 onmouseout='src="/templates/default/image/download.png"'
-                                 /></a>
+                                 onmouseover="src='/templates/default/image/download_highlight.png'"
+                                 onmouseout="src='/templates/default/image/download.png'"
+                            />
+                        </a>
+                        <a href='/svg/{documentname}.pdf'>
+                            <img src='/templates/default/image/preview.png'
+                                 alt='[prvw]'
+                                 onmouseover="src='/templates/default/image/preview_highlight.png'"
+                                 onmouseout="src='/templates/default/image/preview.png'"
+                            />
+                        </a>
                     </div>
                     <div class='dlname'>
                         {documentname}
@@ -137,10 +148,10 @@ Content-Type: {ctype}
         try:
             template_top = open(cournal.__path__[0]+"/httpserver/templates/default/top.html","r")
             template_bottom = open(cournal.__path__[0]+"/httpserver/templates/default/bottom.html","r")
-            output = '{}{}{}'.format(
-                template_top.read(),
-                output,
-                template_bottom.read()
+            output = '{a}{b}{c}'.format(
+                a=template_top.read(),
+                b=output,
+                c=template_bottom.read()
             )
         except IOError:
             print("Template error!", file=sys.stderr)
@@ -162,8 +173,6 @@ Content-Type: {ctype}
         for document in self.realm.server.documents:
             self.whitelist.append("/pdf/"+document+".pdf")
 
-        #print(self.realm.server.documents)
-
     def on_connected(self):
         print("connected")
 
@@ -176,6 +185,7 @@ Content-Type: {ctype}
         document.export_pdf("output.pdf")
         readfile = open("output.pdf","rb")
         output = readfile.read()
+        return output
 
         
     def lineReceived(self, data):
@@ -184,7 +194,7 @@ Content-Type: {ctype}
         if data.decode().upper().find("GET") >= 0:
             getfile = data.decode().split(" ")[1]
             debug(3, "GET ", getfile)
-            if getfile in self.whitelist:
+            if urllib.parse.unquote(getfile) in self.whitelist:
                 # Symlinks
                 if getfile == "/" or getfile == "/index.html":
                     getfile = "/status.html"
