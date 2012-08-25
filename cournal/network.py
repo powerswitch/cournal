@@ -107,8 +107,7 @@ class _Network(pb.Referenceable):
         self.perspective.notifyOnDisconnect(self.disconnect_event)
         self.data_received()
         self.ping()
-        if self.window:
-            self.window.connect_event()
+        self.window.connect_event()
     
     def connection_failed(self, reason):
         """

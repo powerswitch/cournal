@@ -95,6 +95,32 @@ class Document:
             
             surface.show_page() # aka "next page"
 
+    def export_svg(self, filename):
+        """
+        Save the whole document (PDF+annotations) as a SVG file.
+        
+        Positional arguments:
+        filename -- filename of the new PDF file.
+        """
+        try:
+            surface = cairo.SVGSurface(filename, 0, 0)
+        except IOError as ex:
+            print("Error saving document:", ex)
+            #FIXME: Move error handler to mainwindow.py and show error message
+            return
+        
+        for page in self.pages:
+             #surface.set_size(page.width, page.height)
+            context = cairo.Context(surface)
+            
+            page.pdf.render_for_printing(context)
+            
+            for stroke in page.layers[0].strokes:
+                stroke.draw(context)
+            
+            surface.show_page() # aka "next page"
+
+
     def save_xoj_file(self, filename):
         """
         Save the whole document as a .xoj file.
