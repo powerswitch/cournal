@@ -17,18 +17,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class Whitelist:
-    """ Whitelist of files, that could be downloaded via HTTP """
-    whitelist = [
-        "/templates/default/style.css",
-        "/templates/default/image/cournal.svg",
-        "/templates/default/image/download.png",
-        "/templates/default/image/download_highlight.png",
-        "/templates/default/image/preview.png",
-        "/templates/default/image/preview_highlight.png",
-        "/status.html",
-        "/imprint.html",
-        "/",
-        "/index.html",
-        "/documents.html"
-    ]
+""" Whitelist of files that could be downloaded via HTTP """
+whitelist = [
+    "/templates/default/style.css",
+    "/templates/default/image/cournal.svg",
+    "/templates/default/image/download.png",
+    "/templates/default/image/download_highlight.png",
+    "/templates/default/image/preview.png",
+    "/templates/default/image/preview_highlight.png",
+    "/status.html",
+    "/imprint.html",
+    "/",
+    "/index.html",
+    "/documents.html"
+]

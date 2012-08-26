@@ -509,8 +509,7 @@ def main():
     if args.backend:
         backend = protocol.ServerFactory()
         backend.protocol = Httpserver
-        backend.protocol.realm = realm
-        backend.protocol.dport = port
+        backend.protocol.server = realm.server
         try:
             #reactor.listenTCP(8000, backend)
             reactor.listenTCP(8000, backend)

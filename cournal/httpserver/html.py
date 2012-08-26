@@ -61,7 +61,7 @@ Content-Type: {ctype}
         """ Count current cournal users """
         count = 0
         for document in self.documents:
-            count = count + len(self.documents[document].users)
+            count += len(self.documents[document].users)
         return count
 
     def HTML_documents(self):
@@ -131,16 +131,14 @@ Content-Type: {ctype}
         self.transport.write(header)    
 
     def template(self, output):
-        """ Put the specific output into the template """
-        try:
-            template_top = open(cournal.__path__[0]+"/httpserver/templates/default/top.html","r")
-            template_bottom = open(cournal.__path__[0]+"/httpserver/templates/default/bottom.html","r")
-            output = '{a}{b}{c}'.format(
-                a=template_top.read(),
-                b=output,
-                c=template_bottom.read()
-            )
-        except IOError:
-            print("Template error!", file=sys.stderr)
-        return output
+         """ Put the specific output into the template """
+         try:
+             with open(cournal.__path__[0]+"/httpserver/templates/default/top.html","r") as top:
+                 template_top = top.read()
+             with open(cournal.__path__[0]+"/httpserver/templates/default/bottom.html","r") as bottom:
+                  template_bottom = bottom.read()
+             output = template_top + output + template_bottom
+         except IOError:
+             print("Template error!", file=sys.stderr)
+         return output
         
