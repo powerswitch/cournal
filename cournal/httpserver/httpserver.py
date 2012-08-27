@@ -29,6 +29,7 @@ import cgi
 import cournal
 import urllib.parse
 import signal
+import cairo
 
 # 0 - none
 # 1 - minimal
@@ -57,7 +58,26 @@ class Httpserver(LineReceiver):
 
     def render_web_pdf(self):
         # Open a preview document
-        # TODO: This is not, what I was looking for :( Need more time!
+        # TODO: Shh, almost done!
+        #self.server.documents["Test"].export_pdf("output2.pdf")
+        #try:
+        #    #surface = cairo.PDFSurface(cournal.__path__[0]+"/httpserver/documents/webpreview2.pdf", 0, 0)
+        #    surface = cairo.PDFSurface("output.pdf", 0, 0)
+        #except IOError as ex:
+        #    print("Error saving document:", ex)
+        #    return
+        #
+        #for page in self.server.documents["Test"].pages:
+        #    surface.set_size(595, 842) #page.width, page.height)
+        #    context = cairo.Context(surface)
+        #    
+        #    #page.pdf.render_for_printing(context)
+        #    
+        #    for stroke in page.strokes:
+        #        stroke.draw(context)
+        #    
+        #    surface.show_page() # aka "next page"
+        #surface.finish()
         document = Document(cournal.__path__[0]+"/httpserver/documents/webpreview.pdf")
         document.export_pdf("output.pdf")
         readfile = open("output.pdf","rb")
@@ -67,9 +87,20 @@ class Httpserver(LineReceiver):
 
     def render_web_svg(self, document_name):
         # Open a preview document
-        # TODO: This is not, what I was looking for :( Need more time!
-        document = Document(cournal.__path__[0]+"/httpserver/documents/webpreview.pdf")
-        document.export_svg("output.svg")
+        try:
+            surface = cairo.SVGSurface("output.svg", 595, 842) #TODO: get size!
+        except IOError as ex:
+            print("Error saving document:", ex)
+            return
+
+        for page in self.server.documents["Test"].pages:
+            #surface.set_size(595, 842) #page.width, page.height)
+            context = cairo.Context(surface)
+            for stroke in page.strokes:
+                stroke.draw(context)
+            surface.show_page()
+
+        surface.finish()
         readfile = open("output.svg","r")
         output = readfile.read()
         network.disconnect()
