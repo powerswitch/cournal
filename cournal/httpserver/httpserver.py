@@ -25,6 +25,7 @@ from cournal.document import xojparser
 from cournal.httpserver.html import Html
 from cournal.httpserver.whitelist import whitelist
 from cournal.server.util import docname_to_filename
+from gi.repository import Poppler, GLib
 import sys
 import cgi
 import cournal
@@ -56,6 +57,7 @@ class Httpserver(LineReceiver):
         for document in self.server.documents:
             whitelist.append("/pdf/"+document+".pdf")
             whitelist.append("/svg/"+document+".svg")
+            whitelist.append("/svg/"+document+".html")
 
     def render_web_pdf(self, document_name):
         # Open a preview document
@@ -83,6 +85,9 @@ class Httpserver(LineReceiver):
         #return output
 
         save_name = "http_cache_"+docname_to_filename(document_name)+".pdf"
+        #uri = GLib.filename_to_uri(cournal.__path__[0]+"/httpserver/documents/webpreview.pdf", None)
+        #pdf = Poppler.Document.new_from_file(uri, None)
+
         # Open a preview document
         try:
             surface = cairo.PDFSurface(save_name, 595, 842) #TODO: get size!
@@ -141,26 +146,26 @@ class Httpserver(LineReceiver):
                     ctype = "text/html; charset=utf-8"
                 # SVG
                 elif getfile.startswith("/svg/"): #TODO: Security bug
-
-                    #TODO: look for it  in self.server.documents
-                    output = self.html.template(
-                        "<h1>"+
-                        urllib
-                            .parse
-                            .unquote(getfile[5:-4])
-                            .replace('&', '&amp;')
-                            .replace('<', '&lt;')
-                            .replace('>', '&gt;')+
-                        "</h1>"+
-                        self.render_web_svg(urllib
+                    if getfile.endswith(".html"):
+                        output = self.html.HTML_SVG(
+                            urllib
+                                .parse
+                                .unquote(getfile[5:-5]),
+                            self.render_web_svg(urllib
+                                .parse
+                                .unquote(getfile[5:-5])
+                            )
+                        )
+                        status = 200
+                        ctype = "text/html; charset=utf-8"
+                    else:
+                        #TODO: look for it  in self.server.documents
+                        output = self.render_web_svg(urllib
                             .parse
                             .unquote(getfile[5:-4])
                         )
-                        # .replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                    )
-                    status = 200
-                    #ctype = "image/svg+xml; charset=utf-8"
-                    ctype = "text/html; charset=utf-8"
+                        status = 200
+                        ctype = "image/svg+xml; charset=utf-8"
                 # PDF
                 elif getfile.startswith("/pdf/"): #TODO: Security bug
 

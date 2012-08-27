@@ -133,7 +133,7 @@ body {
 	height: 100%;
 	/*float: right;
 	width: auto;*/
-	overflow: hidden;
+	overflow: auto;
 }
 #right {
 	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
@@ -277,3 +277,24 @@ a:active {
 .dlrow:hover {
      background-color: #4994B9;
 }
+.preview {
+    background-color: #fff;
+    border: 1px solid #2E4F99;
+    display: inline-block;
+    padding: 5px;
+    -moz-box-shadow: 5px 5px 5px #173374;
+    -webkit-box-shadow: 5px 5px 5px #173374;
+    box-shadow: 5px 5px 5px #173374;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+/*.preview:hover {
+    background-color: #fefefe;
+    border: 1px solid #E59233;
+    display: inline-block;
+    padding: 5px;
+    -moz-box-shadow: 4px 4px 4px #AE6919;
+    -webkit-box-shadow: 4px 4px 4px #AE6919;
+    box-shadow: 4px 4px 4px #AE6919;
+    margin: 1px -1px -1px 1px;
+}*/

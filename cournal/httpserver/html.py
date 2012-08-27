@@ -36,6 +36,24 @@ Content-Type: {ctype}
         self.transport = transport
         self.http_users = 0
     
+    def HTML_SVG(self, documentname, svg):
+        """ Creates a page that displays a specific SVG file """
+        #TODO: Create a reloading script
+        output = """<h1>{documentname}</h1>
+        <script>
+        </script>
+        <div class='preview'>
+        {svg}
+        </div>
+        <br /><br />"""
+        return output.format(
+            documentname=documentname
+                .replace('&', '&amp;')
+                .replace('<', '&lt;')
+                .replace('>', '&gt;'),
+            svg=svg
+            )
+    
     def HTML_status(self):
         """ Creates a status HTML page"""
         output = """<h1>Server status</h1>
@@ -76,7 +94,7 @@ Content-Type: {ctype}
                                  onmouseout="src='/templates/default/image/download.png'"
                             />
                         </a>
-                        <a href='/svg/{documentname}.svg'>
+                        <a href='/svg/{documentname}.html'>
                             <img src='/templates/default/image/preview.png'
                                  alt='[prvw]'
                                  onmouseover="src='/templates/default/image/preview_highlight.png'"
