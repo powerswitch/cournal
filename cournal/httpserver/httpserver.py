@@ -24,6 +24,7 @@ from cournal.document.document import Document
 from cournal.document import xojparser
 from cournal.httpserver.html import Html
 from cournal.httpserver.whitelist import whitelist
+from cournal.server.util import docname_to_filename
 import sys
 import cgi
 import cournal
@@ -56,10 +57,8 @@ class Httpserver(LineReceiver):
             whitelist.append("/pdf/"+document+".pdf")
             whitelist.append("/svg/"+document+".svg")
 
-    def render_web_pdf(self):
+    def render_web_pdf(self, document_name):
         # Open a preview document
-        # TODO: Shh, almost done!
-        #self.server.documents["Test"].export_pdf("output2.pdf")
         #try:
         #    #surface = cairo.PDFSurface(cournal.__path__[0]+"/httpserver/documents/webpreview2.pdf", 0, 0)
         #    surface = cairo.PDFSurface("output.pdf", 0, 0)
@@ -78,32 +77,47 @@ class Httpserver(LineReceiver):
         #    
         #    surface.show_page() # aka "next page"
         #surface.finish()
-        document = Document(cournal.__path__[0]+"/httpserver/documents/webpreview.pdf")
-        document.export_pdf("output.pdf")
-        readfile = open("output.pdf","rb")
-        output = readfile.read()
-        network.disconnect()
-        return output
+        #document = Document(cournal.__path__[0]+"/httpserver/documents/webpreview.pdf")
+        #document.export_pdf("output.pdf")
+        #output = readfile.read()
+        #return output
 
-    def render_web_svg(self, document_name):
+        save_name = "http_cache_"+docname_to_filename(document_name)+".pdf"
         # Open a preview document
         try:
-            surface = cairo.SVGSurface("output.svg", 595, 842) #TODO: get size!
+            surface = cairo.PDFSurface(save_name, 595, 842) #TODO: get size!
         except IOError as ex:
             print("Error saving document:", ex)
             return
 
-        for page in self.server.documents["Test"].pages:
-            #surface.set_size(595, 842) #page.width, page.height)
+        for page in self.server.documents[document_name].pages:
+            context = cairo.Context(surface)
+            for stroke in page.strokes:
+                stroke.draw(context)
+            surface.show_page()
+        surface.finish()
+        readfile = open(save_name,"rb")
+        output = readfile.read()
+        return output
+
+    def render_web_svg(self, document_name):
+        save_name = "http_cache_"+docname_to_filename(document_name)+".svg"
+        # Open a preview document
+        try:
+            surface = cairo.SVGSurface(save_name, 595, 842) #TODO: get size!
+        except IOError as ex:
+            print("Error saving document:", ex)
+            return
+
+        for page in self.server.documents[document_name].pages:
             context = cairo.Context(surface)
             for stroke in page.strokes:
                 stroke.draw(context)
             surface.show_page()
 
         surface.finish()
-        readfile = open("output.svg","r")
+        readfile = open(save_name,"r")
         output = readfile.read()
-        network.disconnect()
         return output
 
     def lineReceived(self, data):
@@ -111,7 +125,6 @@ class Httpserver(LineReceiver):
         binary = False;
         if data.decode().upper().startswith("GET"):
             getfile = data.decode().split(" ")[1]
-            debug(3, "GET ", getfile)
             if urllib.parse.unquote(getfile) in whitelist:
                 # Symlinks
                 if getfile == "/" or getfile == "/index.html":
@@ -142,10 +155,8 @@ class Httpserver(LineReceiver):
                         self.render_web_svg(urllib
                             .parse
                             .unquote(getfile[5:-4])
-                            .replace('&', '&amp;')
-                            .replace('<', '&lt;')
-                            .replace('>', '&gt;')
                         )
+                        # .replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                     )
                     status = 200
                     #ctype = "image/svg+xml; charset=utf-8"
@@ -154,7 +165,10 @@ class Httpserver(LineReceiver):
                 elif getfile.startswith("/pdf/"): #TODO: Security bug
 
                     #TODO: look for it  in self.server.documents
-                    output = self.render_web_pdf()
+                    output = self.render_web_pdf(urllib
+                        .parse
+                        .unquote(getfile[5:-4])
+                    )
                     status = 200
                     ctype = "application/pdf"
                     binary = True;
