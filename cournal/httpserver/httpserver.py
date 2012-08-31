@@ -32,6 +32,7 @@ import cournal
 import urllib.parse
 import signal
 import cairo
+import io
 
 # 0 - none
 # 1 - minimal
@@ -110,10 +111,10 @@ class Httpserver(LineReceiver):
         return output
 
     def render_web_svg(self, document_name, page_number=0):
-        save_name = "http_cache_"+docname_to_filename(document_name)+".svg"
+        memfile = io.BytesIO()
         # Open a preview document
         try:
-            surface = cairo.SVGSurface(save_name, 595, 842) #TODO: get size!
+            surface = cairo.SVGSurface(memfile, 595, 842) #TODO: get size!
         except IOError as ex:
             print("Error saving document:", ex)
             return
@@ -132,8 +133,10 @@ class Httpserver(LineReceiver):
             surface.show_page()
         
         surface.finish()
-        readfile = open(save_name,"r")
-        output = readfile.read()
+        
+        memfile.seek(0)
+        output = str(memfile.read(), "utf-8")
+        print(output)
         return output
 
     def lineReceived(self, data):
