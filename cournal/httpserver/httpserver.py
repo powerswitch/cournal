@@ -57,6 +57,10 @@ class Httpserver(LineReceiver):
         for document in self.server.documents:
             whitelist.append("/pdf/"+document+".pdf")
             whitelist.append("/svg/"+document+".svg")
+            page_number = 0
+            for page in self.server.documents[document].pages:
+                page_number += 1;
+                whitelist.append("/svg/"+document+".svg?page="+str(page_number));
             whitelist.append("/svg/"+document+".html")
 
     def render_web_pdf(self, document_name):
@@ -105,7 +109,7 @@ class Httpserver(LineReceiver):
         output = readfile.read()
         return output
 
-    def render_web_svg(self, document_name):
+    def render_web_svg(self, document_name, page_number=0):
         save_name = "http_cache_"+docname_to_filename(document_name)+".svg"
         # Open a preview document
         try:
@@ -114,12 +118,19 @@ class Httpserver(LineReceiver):
             print("Error saving document:", ex)
             return
 
-        for page in self.server.documents[document_name].pages:
+        if page_number == 0:
+            for page in self.server.documents[document_name].pages:
+                context = cairo.Context(surface)
+                for stroke in page.strokes:
+                    stroke.draw(context)
+                surface.show_page()
+        else:
+            page = self.server.documents[document_name].pages[page_number-1]
             context = cairo.Context(surface)
             for stroke in page.strokes:
                 stroke.draw(context)
             surface.show_page()
-
+        
         surface.finish()
         readfile = open(save_name,"r")
         output = readfile.read()
@@ -153,11 +164,32 @@ class Httpserver(LineReceiver):
                                 .unquote(getfile[5:-5]),
                             self.render_web_svg(urllib
                                 .parse
-                                .unquote(getfile[5:-5])
+                                .unquote(getfile[5:-5]),
+                                page_number=1
+                            ),
+                            len(
+                                self
+                                .server
+                                .documents[
+                                    urllib
+                                    .parse
+                                    .unquote(getfile[5:-5])
+                                ]
+                                .pages
                             )
+
                         )
                         status = 200
                         ctype = "text/html; charset=utf-8"
+                    elif getfile.find("?page=") >= 0:
+                        argument_position = getfile.find("?page=")
+                        output = self.render_web_svg(urllib
+                            .parse
+                            .unquote(getfile[5:argument_position-4]),
+                            page_number=int(getfile[getfile.find("?page=")+6:])
+                        )
+                        status = 200
+                        ctype = "image/svg+xml; charset=utf-8"
                     else:
                         #TODO: look for it  in self.server.documents
                         output = self.render_web_svg(urllib
@@ -176,7 +208,7 @@ class Httpserver(LineReceiver):
                     )
                     status = 200
                     ctype = "application/pdf"
-                    binary = True;
+                    binary = True
                
                 # try to open files
                 else:
@@ -202,6 +234,8 @@ class Httpserver(LineReceiver):
                             ctype = "text/xml; charset=utf-8"
                         elif getfile.endswith(".pdf"):
                             ctype = "application/pdf"
+                        elif getfile.endswith(".js"):
+                            ctype = "application/javascript; charset=utf-8"
                         else:
                             ctype = "text/html; charset=utf-8"
                     except IOError:

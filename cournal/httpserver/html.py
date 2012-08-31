@@ -36,22 +36,45 @@ Content-Type: {ctype}
         self.transport = transport
         self.http_users = 0
     
-    def HTML_SVG(self, documentname, svg):
+    def HTML_SVG(self, documentname, svg, maxpage):
         """ Creates a page that displays a specific SVG file """
-        #TODO: Create a reloading script
+        #TODO: Create a reloading script, replace hardcoded svg with <object>
         output = """<h1>{documentname}</h1>
-        <script>
+        <script type='application/javascript'>
+            DOC_NAME='{documentname}';
+            MAX_PAGE={maxpage};
+            page=1;
         </script>
-        <div class='preview'>
-        {svg}
+        <script type='application/javascript' src='/script/svghandler.js'>
+        </script>
+        
+        <div class='preview_area'>
+            {navigation_bar}
+            <div class='preview' id='preview'>
+            {svg}
+            </div>
         </div>
         <br /><br />"""
+        
+        if maxpage > 1:
+            navigation_bar = """
+            <div class='navbar'>
+                <div class='svg_button' id='svg_prev' onclick='prevpage()'> &lt; </div>
+                <div class='svg_button' id='svg_next' onclick='nextpage()'> &gt; </div>
+                <div class='svg_header' id='svg_header'>Page 1 of {maxpage}</div>
+                <div class='clear'></div>
+            </div>""".format(maxpage=maxpage)
+        else:
+            navigation_bar = ""
+        
         return output.format(
             documentname=documentname
                 .replace('&', '&amp;')
                 .replace('<', '&lt;')
                 .replace('>', '&gt;'),
-            svg=svg
+            svg=svg,
+            navigation_bar=navigation_bar,
+            maxpage=maxpage
             )
     
     def HTML_status(self):

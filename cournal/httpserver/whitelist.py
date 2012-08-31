@@ -29,5 +29,6 @@ whitelist = [
     "/imprint.html",
     "/",
     "/index.html",
-    "/documents.html"
+    "/documents.html",
+    "/script/svghandler.js"
 ]
