@@ -136,7 +136,6 @@ class Httpserver(LineReceiver):
         
         memfile.seek(0)
         output = str(memfile.read(), "utf-8")
-        print(output)
         return output
 
     def lineReceived(self, data):
