@@ -44,6 +44,7 @@ Content-Type: {ctype}
             DOC_NAME='{documentname}';
             MAX_PAGE={maxpage};
             page=1;
+            setInterval("setpage();",5000);
         </script>
         <script type='application/javascript' src='/script/svghandler.js'>
         </script>
