@@ -28,17 +28,24 @@ Content-Length: {length}
 Content-Language: en
 Connection: keep-alive
 Content-Type: {ctype}
+Last-Modified: {modified}
 
 {output}"""    
     
     def __init__(self, documents, transport):
+        """
+        Constructor
+        
+        Positional arguments:
+        documents -- all documents on the server
+        transport -- http transport channel
+        """
         self.documents = documents
         self.transport = transport
         self.http_users = 0
     
     def HTML_SVG(self, documentname, svg, maxpage):
         """ Creates a page that displays a specific SVG file """
-        #TODO: Create a reloading script, replace hardcoded svg with <object>
         output = """<h1>{documentname}</h1>
         <script type='application/javascript'>
             DOC_NAME='{documentname}';
@@ -56,6 +63,7 @@ Content-Type: {ctype}
         </div>
         <br /><br />"""
         
+        # create navigation bar if there is more than one page
         if maxpage > 1:
             navigation_bar = """
             <div class='navbar'>
@@ -95,7 +103,7 @@ Content-Type: {ctype}
         """
         return output.format(
             cournal_users=self.count_users(),
-            http_users=0#http_users #FIXME: Argument me
+            http_users=self.http_users
             )
 
     def count_users(self):
@@ -157,6 +165,7 @@ Content-Type: {ctype}
                 ctype=ctype,
                 status=status,
                 version=version,
+                modified="",
                 output=""
             ).encode()
             header = header + output
@@ -166,6 +175,7 @@ Content-Type: {ctype}
                 ctype=ctype,
                 status=status,
                 version=version,
+                modified="",
                 output=output
             ).encode()
             

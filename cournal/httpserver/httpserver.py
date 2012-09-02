@@ -17,6 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Known bugs:
+#   * new created documents does not appear in whitelist
+
+# To do:
+#   * get document dimensions
+#   * get time stamp
+
 from twisted.internet import reactor, protocol
 from twisted.protocols.basic import LineReceiver
 from cournal.network import network
@@ -24,7 +31,7 @@ from cournal.document.document import Document
 from cournal.document import xojparser
 from cournal.httpserver.html import Html
 from cournal.httpserver.whitelist import whitelist
-from cournal.server.util import docname_to_filename
+#from cournal.server.util import docname_to_filename
 from gi.repository import Poppler, GLib
 import sys
 import cgi
@@ -42,16 +49,33 @@ import random
 DEBUGLEVEL = 3
 
 class Httpserver(LineReceiver):
+    """
+    HTTP server class
+    
+    Serves the cournal documents to any browser as PDF or SVG.
+    """
+    
     def __init__(self):
+        """
+        Constructor
+        
+        Creates a new HTML parser object
+        """
         self.html = Html(self.server.documents, self.transport)
 
     def connectionLost(self, reason):
-        """ What to do when the connection is closed """
+        """
+        What to do when the connection is closed
+        Called by LineReceiver
+        """
         debug(3, "connection",self.html.http_users,"lost")
         self.html.http_users -= 1
     
     def connectionMade(self):
-        """ What to do when a new connection is made """
+        """
+        What to do when a new connection is made
+        Called by LineReceiver
+        """
         self.html.http_users += 1
         debug(3, "connection {} made".format(self.html.http_users))
         self.html.transport = self.transport
@@ -67,84 +91,78 @@ class Httpserver(LineReceiver):
             whitelist.append("/svg/"+document+".html")
 
     def render_web_pdf(self, document_name):
-        # Open a preview document
-        #try:
-        #    #surface = cairo.PDFSurface(cournal.__path__[0]+"/httpserver/documents/webpreview2.pdf", 0, 0)
-        #    surface = cairo.PDFSurface("output.pdf", 0, 0)
-        #except IOError as ex:
-        #    print("Error saving document:", ex)
-        #    return
-        #
-        #for page in self.server.documents["Test"].pages:
-        #    surface.set_size(595, 842) #page.width, page.height)
-        #    context = cairo.Context(surface)
-        #    
-        #    #page.pdf.render_for_printing(context)
-        #    
-        #    for stroke in page.strokes:
-        #        stroke.draw(context)
-        #    
-        #    surface.show_page() # aka "next page"
-        #surface.finish()
-        #document = Document(cournal.__path__[0]+"/httpserver/documents/webpreview.pdf")
-        #document.export_pdf("output.pdf")
-        #output = readfile.read()
-        #return output
-
-        memfile = io.BytesIO()
-        #uri = GLib.filename_to_uri(cournal.__path__[0]+"/httpserver/documents/webpreview.pdf", None)
-        #pdf = Poppler.Document.new_from_file(uri, None)
-
-        # Open a preview document
+        """
+        Render given document as pdf into memory
+        
+        Positional argument:
+        document_name -- Name of the document to be rendered
+        
+        Return value:
+        document pdf as byte string
+        """
+        memfile = io.BytesIO() # Create memory file
         try:
-            surface = cairo.PDFSurface(memfile, 595, 842) #TODO: get size!
+            surface = cairo.PDFSurface(memfile, 595, 842)  #TODO: get size!
         except IOError as ex:
             print("Error saving document:", ex)
             return
 
+        # Render every page in document
         for page in self.server.documents[document_name].pages:
-            context = cairo.Context(surface)
-            for stroke in page.strokes:
+            context = cairo.Context(surface) # create new cairo context
+            for stroke in page.strokes:      # draw every stroke
                 stroke.draw(context)
-            surface.show_page()
-        surface.finish()
-        memfile.seek(0)
-        output = memfile.read()
-        return output
+            surface.show_page()              # next page
+        surface.finish()                     # finish document
+        memfile.seek(0)                      # rewind
+        return memfile.read()                # return
 
     def render_web_svg(self, document_name, page_number=0):
-        memfile = io.BytesIO()
-        # Open a preview document
+        """
+        Render given document as pdf into memory
+        
+        Positional argument:
+        document_name -- Name of the document to be rendered
+        
+        Named argument:
+        page_number   -- Page number to be rendered
+        
+        Return value:
+        document svg as string
+        """        
+        memfile = io.BytesIO() # create new memory file
         try:
             surface = cairo.SVGSurface(memfile, 595, 842) #TODO: get size!
         except IOError as ex:
             print("Error saving document:", ex)
             return
 
-        if page_number == 0:
-            for page in self.server.documents[document_name].pages:
-                context = cairo.Context(surface)
-                for stroke in page.strokes:
-                    stroke.draw(context)
-                surface.show_page()
-        else:
-            page = self.server.documents[document_name].pages[page_number-1]
-            context = cairo.Context(surface)
-            for stroke in page.strokes:
-                stroke.draw(context)
-            surface.show_page()
+        # Render selected page
+        page = self.server.documents[document_name].pages[page_number-1]
+        context = cairo.Context(surface) # create new cairo context
+        for stroke in page.strokes:      # render every stroke
+            stroke.draw(context)
+        surface.show_page()              # finish page
+        surface.finish()                 # finish document
         
-        surface.finish()
-        
-        memfile.seek(0)
-        output = str(memfile.read(), "utf-8")
-        return output
+        memfile.seek(0)                  # rewind
+        return str(memfile.read(), "utf-8") # return
 
     def lineReceived(self, data):
-        """ If a readable line is received """
-        binary = False;
+        """
+        If a readable line is received
+        Called by LineReceiver
+        
+        Positional argument:
+        data -- read line
+        """
+        binary = False; # If output is binary or string
+        
+        """ Client requested HTTP GET file """
         if data.decode().upper().startswith("GET"):
-            getfile = data.decode().split(" ")[1]
+            getfile = data.decode().split(" ")[1] # get requested file name
+            
+            """ Check if requested file is in whitelist """
             if urllib.parse.unquote(getfile) in whitelist:
                 # Symlinks
                 if getfile == "/" or getfile == "/index.html":
@@ -161,30 +179,17 @@ class Httpserver(LineReceiver):
                     ctype = "text/html; charset=utf-8"
                 # SVG
                 elif getfile.startswith("/svg/"):
+                    # Get SVG preview HTML page
                     if getfile.endswith(".html"):
-                        output = self.html.HTML_SVG(
-                            urllib
-                                .parse
-                                .unquote(getfile[5:-5]),
-                            self.render_web_svg(urllib
-                                .parse
-                                .unquote(getfile[5:-5]),
-                                page_number=1
-                            ),
-                            len(
-                                self
-                                .server
-                                .documents[
-                                    urllib
-                                    .parse
-                                    .unquote(getfile[5:-5])
-                                ]
-                                .pages
-                            )
-
+                        document_name = urllib.parse.unquote(getfile[5:-5]) # get document name
+                        output = self.html.HTML_SVG( 
+                            document_name,
+                            self.render_web_svg(document_name,page_number=1),
+                            len(self.server.documents[document_name].pages)
                         )
                         status = 200
                         ctype = "text/html; charset=utf-8"
+                    # Get raw SVG of given page
                     elif getfile.find("?page=") >= 0:
                         argument_position = getfile.find("?page=")
                         output = self.render_web_svg(urllib
@@ -194,13 +199,14 @@ class Httpserver(LineReceiver):
                         )
                         status = 200
                         ctype = "image/svg+xml; charset=utf-8"
+                    # Get timestamp of given SVG page
                     elif getfile.find("?timestamp=") >= 0:
                         # TODO: Create Timestamp / Version Number
-                        argument_position = getfile.find("?timestamp=")
-                        #output = getfile[getfile.find("?timestamp=")+11:]
+                        #argument_position = getfile.find("?timestamp=")
                         output = str(random.randint(0,10000)) # FIXME
                         status = 200
                         ctype = "text/plain; charset=utf-8"
+                    # Render SVG
                     else:
                         output = self.render_web_svg(urllib
                             .parse
@@ -220,7 +226,7 @@ class Httpserver(LineReceiver):
                
                 # try to open files
                 else:
-                    ''' Try to open the file '''
+                    """ Try to open the file """
                     try:
                         if getfile[-4:] == ".png":
                             readfile = open(cournal.__path__[0]+"/httpserver"+getfile,"rb")
@@ -228,7 +234,7 @@ class Httpserver(LineReceiver):
                             readfile = open(cournal.__path__[0]+"/httpserver"+getfile,"r")
                         output = readfile.read()
                         status = 200
-                        #ctype
+                        # filter ctype
                         if getfile.endswith(".css"):
                             ctype = "text/css; charset=utf-8"
                         elif getfile.endswith(".html"):
@@ -247,6 +253,7 @@ class Httpserver(LineReceiver):
                         else:
                             ctype = "text/html; charset=utf-8"
                     except IOError:
+                        """ Create 404 error page """
                         output = """<h1>404 - File not found</h1>
                                     This file should be on this server,
                                     but it could not be opened.<br />
@@ -261,7 +268,7 @@ class Httpserver(LineReceiver):
                     output = self.html.template(output)
                 
                 self.html.send(output,ctype=ctype,status=status,binary=binary)
-            
+            # Not in whitelist
             else:
                 self.html.send(
                     self.html.template(
