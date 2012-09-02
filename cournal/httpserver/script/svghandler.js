@@ -28,7 +28,7 @@ function setpage()
         }
     }
     xmlhttp.send();
-    interval = setInterval("page_loading();",30);
+    interval = setInterval("page_loading();",300);
 }
 
 function page_loading()
