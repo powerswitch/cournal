@@ -21,6 +21,8 @@
 whitelist = [
     "/templates/default/style.css",
     "/templates/default/image/cournal.svg",
+    "/templates/default/image/loading.svg",
+    "/templates/default/image/error.svg",
     "/templates/default/image/download.png",
     "/templates/default/image/download_highlight.png",
     "/templates/default/image/preview.png",

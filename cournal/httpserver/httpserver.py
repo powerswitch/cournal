@@ -33,6 +33,7 @@ import urllib.parse
 import signal
 import cairo
 import io
+import random
 
 # 0 - none
 # 1 - minimal
@@ -62,6 +63,7 @@ class Httpserver(LineReceiver):
             for page in self.server.documents[document].pages:
                 page_number += 1;
                 whitelist.append("/svg/"+document+".svg?page="+str(page_number));
+                whitelist.append("/svg/"+document+".svg?timestamp="+str(page_number));
             whitelist.append("/svg/"+document+".html")
 
     def render_web_pdf(self, document_name):
@@ -89,13 +91,13 @@ class Httpserver(LineReceiver):
         #output = readfile.read()
         #return output
 
-        save_name = "http_cache_"+docname_to_filename(document_name)+".pdf"
+        memfile = io.BytesIO()
         #uri = GLib.filename_to_uri(cournal.__path__[0]+"/httpserver/documents/webpreview.pdf", None)
         #pdf = Poppler.Document.new_from_file(uri, None)
 
         # Open a preview document
         try:
-            surface = cairo.PDFSurface(save_name, 595, 842) #TODO: get size!
+            surface = cairo.PDFSurface(memfile, 595, 842) #TODO: get size!
         except IOError as ex:
             print("Error saving document:", ex)
             return
@@ -106,8 +108,8 @@ class Httpserver(LineReceiver):
                 stroke.draw(context)
             surface.show_page()
         surface.finish()
-        readfile = open(save_name,"rb")
-        output = readfile.read()
+        memfile.seek(0)
+        output = memfile.read()
         return output
 
     def render_web_svg(self, document_name, page_number=0):
@@ -158,7 +160,7 @@ class Httpserver(LineReceiver):
                     status = 200
                     ctype = "text/html; charset=utf-8"
                 # SVG
-                elif getfile.startswith("/svg/"): #TODO: Security bug
+                elif getfile.startswith("/svg/"):
                     if getfile.endswith(".html"):
                         output = self.html.HTML_SVG(
                             urllib
@@ -192,8 +194,14 @@ class Httpserver(LineReceiver):
                         )
                         status = 200
                         ctype = "image/svg+xml; charset=utf-8"
+                    elif getfile.find("?timestamp=") >= 0:
+                        # TODO: Create Timestamp / Version Number
+                        argument_position = getfile.find("?timestamp=")
+                        #output = getfile[getfile.find("?timestamp=")+11:]
+                        output = str(random.randint(0,10000)) # FIXME
+                        status = 200
+                        ctype = "text/plain; charset=utf-8"
                     else:
-                        #TODO: look for it  in self.server.documents
                         output = self.render_web_svg(urllib
                             .parse
                             .unquote(getfile[5:-4])
@@ -201,9 +209,7 @@ class Httpserver(LineReceiver):
                         status = 200
                         ctype = "image/svg+xml; charset=utf-8"
                 # PDF
-                elif getfile.startswith("/pdf/"): #TODO: Security bug
-
-                    #TODO: look for it  in self.server.documents
+                elif getfile.startswith("/pdf/"):
                     output = self.render_web_pdf(urllib
                         .parse
                         .unquote(getfile[5:-4])
