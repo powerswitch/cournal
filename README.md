@@ -39,6 +39,7 @@ but don't know how to get started.
  * Python bindings for all above this line
  * ZopeInterface 3.6.0 or newer
  * Twisted for python3 (*included*)
+ * Build-time: Gettext, Intltool
 
 ## Installation ##
 

@@ -18,6 +18,7 @@
 # along with Cournal.  If not, see <http://www.gnu.org/licenses/>.
 
 import os, sys
+import gettext
 from io import StringIO
 import string
 import atexit
@@ -86,13 +87,13 @@ class CournalServer:
         if not os.path.isdir(self.autosave_directory):
             # Only create the autosave directory, if it wasn't changed by the user
             if self.autosave_directory != DEFAULT_AUTOSAVE_DIRECTORY:
-                print("Autosave directory '{}' does not exist.", file=sys.stderr)
+                print(_("Autosave directory '{}' does not exist.").format(self.autosave_directory), file=sys.stderr)
                 raise Exception()
             else:
                 try:
                     os.mkdir(self.autosave_directory)
                 except Exception as ex:
-                    print("Could not create autosave directory: {}".format(self.autosave_directory, ex), file=sys.stderr)
+                    print(_("Could not create autosave directory: {}").format(self.autosave_directory, ex), file=sys.stderr)
                     raise ex
         os.chdir(self.autosave_directory)
 
@@ -105,7 +106,7 @@ class CournalServer:
                 self.documents[name] = Document(name)
                 self.documents[name].pages = pickle.load(file)
         
-        debug(1, "Loaded {} documents".format(len(self.documents)))
+        debug(1, _("Loaded {} documents").format(len(self.documents)))
         
         reactor.callLater(self.autosave_interval, self.save_documents)
     
@@ -119,19 +120,21 @@ class CournalServer:
             with open(lockfile, "rb") as f:
                 pid = int(f.read())
             if self.is_pid_dead(pid):
-                print("The autosave directory was locked by another instance of cournal-server,", file=sys.stderr)
-                print("that is not running anymore. This happens, when cournal-server crashed.", file=sys.stderr)
-                print("Make sure that no server is using the autosave directory '{}',".format(self.autosave_directory), file=sys.stderr)
-                print("delete '{}' and try again.".format(lockfile), file=sys.stderr)
+                print(_(\
+"""The autosave directory was locked by another instance of cournal-server,
+that is not running anymore. This happens, when cournal-server crashed.
+Make sure that no server is using the autosave directory '{}',
+delete '{}' and try again.""").format(self.autosave_directory, lockfile), file=sys.stderr)
             else:
-                print("The autosave directory is locked by another instance of cournal-server.", file=sys.stderr)
-                print("To run multiple instances concurrently, you need to set a different autosave directory and port.", file=sys.stderr)
+                print(_(\
+"""The autosave directory is locked by another instance of cournal-server.
+To run multiple instances concurrently, you need to set a different autosave directory and port."""), file=sys.stderr)
             sys.exit(-1)
         else:
             try:
                 open(lockfile, 'w').write(str(os.getpid()))
             except Exception as ex:
-                print("Could not create file in autosave directory: {}".format(ex), file=sys.stderr)
+                print(_("Could not create file in autosave directory: {}").format(ex), file=sys.stderr)
                 raise ex
         self.lockfile = lockfile
     
@@ -171,7 +174,7 @@ class CournalServer:
         
         The on-disk format is a pickled list of pages.
         """
-        debug(3, "Saving all documents.")
+        debug(3, _("Saving all documents."))
         for name, document in self.documents.items():
             if not document.has_unsaved_changes:
                 continue
@@ -243,7 +246,7 @@ class User(pb.Avatar):
         name -- Name of the user
         server -- A CournalServer object 
         """
-        debug(1, "New User connected:", name)
+        debug(1, _("New User connected: {}").format(name))
         self.name = name
         self.server = server
         self.remote = None
@@ -251,7 +254,7 @@ class User(pb.Avatar):
         
     def __del__(self):
         """Destructor. Called when the user disconnects."""
-        debug(1, "User disconnected:", self.name)
+        debug(1, _("User disconnected: {}").format(self.name))
         
     def attached(self, mind):
         """
@@ -279,7 +282,7 @@ class User(pb.Avatar):
         """
         Return a list of all our documents.
         """
-        debug(2, "User", self.name, "requested document list")
+        debug(2, _("User {} requested document list").format(self.name))
         
         return list(self.server.documents.keys())
     
@@ -290,7 +293,7 @@ class User(pb.Avatar):
         Positional arguments:
         documentname -- Name of the requested document session
         """
-        debug(2, "User", self.name, "started editing", documentname)
+        debug(2, _("User {} started editing {}").format(self.name, documentname))
         
         document = self.server.get_document(documentname)
         if isinstance(document, Failure):
@@ -383,7 +386,7 @@ class Document(pb.Viewable):
             self.pages.append(Page())
         self.pages[pagenum].strokes.append(stroke)
         
-        debug(3, "New stroke on page", pagenum+1)
+        debug(3, _("New stroke on page {}").format(pagenum + 1))
         self.broadcast("new_stroke", pagenum, stroke, except_user=from_user)
         
     def view_delete_stroke_with_coords(self, from_user, pagenum, coords):
@@ -402,7 +405,7 @@ class Document(pb.Viewable):
             if stroke.coords == coords:
                 self.pages[pagenum].strokes.remove(stroke)
                 
-                debug(3, "Deleted stroke on page", pagenum+1)
+                debug(3, _("Deleted stroke on page {}").format(pagenum + 1))
                 self.broadcast("delete_stroke_with_coords", pagenum, coords, except_user=from_user)
 
 class CmdlineParser():
@@ -419,14 +422,14 @@ class CmdlineParser():
         """
         Parse commandline options.
         """
-        parser = argparse.ArgumentParser(description="Server for Cournal.",
-                                         epilog="e.g.: %(prog)s -p port")
+        parser = argparse.ArgumentParser(description=_("Server for Cournal."),
+                                         epilog=_("e.g.: %(prog)s -p port"))
         parser.add_argument("-p", "--port", nargs=1, type=int, default=[self.port],
-                            help="Port to listen on")
+                            help=_("Port to listen on"))
         parser.add_argument("-s", "--autosave-directory", nargs=1, default=[self.autosave_directory],
-                            help="The directory within which to store the documents on the server.")
+                            help=_("The directory within which to store the documents on the server."))
         parser.add_argument("-i", "--autosave-interval", nargs=1, type=int, default=[self.autosave_interval],
-                            help="Interval in seconds within which to save modified documents to permanent storage. Set to 0 to disable autosave.")
+                            help=_("Interval in seconds within which to save modified documents to permanent storage. Set to 0 to disable autosave."))
         parser.add_argument("-v", "--version", action="version",
                             version="%(prog)s " + cournal_version)
         parser.add_argument("-b", "--backend", dest="backend", action="store_const", const=True, default=False,
@@ -489,6 +492,10 @@ def docname_to_filename(name):
 
 def main():
     """Start a Cournal server"""
+    locale_dir = os.path.join(sys.prefix, "local",  "share", "locale")
+    #locale_dir = os.path.realpath(os.path.dirname(sys.argv[0]))
+    gettext.install("cournal") #, locale_dir)
+
     args = CmdlineParser().parse()
     port = args.port
     
@@ -502,9 +509,9 @@ def main():
     try:
         reactor.listenTCP(port, pb.PBServerFactory(p))
     except CannotListenError as err:
-        debug(0, "ERROR: Failed to listen on port", err.port)
+        debug(0, _("ERROR: Failed to listen on port {}").format(err.port))
         return 1
-    debug(2, "Listening on port", port)
+    debug(2, _("Listening on port {}").format(port))
 
     if args.backend:
         backend = protocol.ServerFactory()
