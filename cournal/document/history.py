@@ -20,86 +20,80 @@
 from cournal.network import network
 
 def reset():
-    """
-    Reset undo history
-    """
+    """Reset undo history."""
     global _undo_list, _redo_list
     deactivate_undo()
     deactivate_redo()
-    _undo_list=[]
-    _redo_list=[]
+    _undo_list = []
+    _redo_list = []
     
 
 def init(menu_undo, menu_redo, tool_undo, tool_redo):
     """
-    Init the undo history
+    Initialize the undo history.
     
     Positional arguments:
-    menu_undo -- gtk undo menu item
-    menu_redo -- gtk redo menu item
-    tool_undo -- gtk undo tool item
-    tool_redo -- gtk redo tool item
+    menu_undo -- undo widget in the menubar
+    menu_redo -- redo widget in the menubar
+    tool_undo -- undo widget in the toolbar
+    tool_redo -- redo widget in the toolbar
     """
     global _menu_undo, _menu_redo, _tool_redo, _tool_undo, _undo_list, _redo_list
     _menu_undo = menu_undo
     _menu_redo = menu_redo
     _tool_undo = tool_undo
     _tool_redo = tool_redo
-    _undo_list=[]
-    _redo_list=[]
+    _undo_list = []
+    _redo_list = []
     
 def undo(menuitem):
-    """
-    Undo last action
-    """
-    action = _undo_list.pop()
-    add_redo_action(action)
-    action.undo()
+    """Undo last command."""
+    command = _undo_list.pop()
+    add_redo_command(command)
+    command.undo()
     if len(_undo_list) == 0:
         deactivate_undo()
 
 def redo(menuitem):
-    """
-    Redo undone action
-    """
-    action = _redo_list.pop()
-    add_undo_action(action, clear_redo=False)
-    action.redo()
+    """Redo undone command."""
+    command = _redo_list.pop()
+    add_undo_command(command, clear_redo=False)
+    command.redo()
     if len(_redo_list) == 0:
         deactivate_redo()
 
 def register_draw_stroke(stroke, page):
     """
-    register draw stroke action in history
+    Register draw stroke command in history.
     
     Positional arguments:
     stroke -- drawn stroke
-    page -- page stroke was drawn at
+    page -- page stroke was drawn on
     """
-    add_undo_action(ActionDrawStroke(stroke, page))
+    add_undo_command(CommandDrawStroke(stroke, page))
 
 def register_delete_stroke(stroke, page):
     """
-    register delete stroke action in history
+    Register delete stroke command in history.
     
     Positional arguments:
     stroke -- deleted stroke
     page -- page stroke was deleted from
     """
-    add_undo_action(ActionDeleteStroke(stroke, page))
+    add_undo_command(CommandDeleteStroke(stroke, page))
 
-def add_undo_action(action, clear_redo=True):
+def add_undo_command(command, clear_redo=True):
     """
-    Add action to undo history
+    Add command to undo history
     
     Positional arguments:
-    action -- action to be registered
+    command -- command to be registered
     
     Keyword arguments:
-    clear-redo -- clear redo history
+    clear_redo -- clear redo history
     """
     global _redo_list
-    _undo_list.append(action)
+    _undo_list.append(command)
     if len(_undo_list) > 20:
         _undo_list.pop(0)
     if len(_undo_list) == 1:
@@ -108,39 +102,39 @@ def add_undo_action(action, clear_redo=True):
         _redo_list = []
         deactivate_redo()
 
-def add_redo_action(action):
+def add_redo_command(command):
     """
-    Add action to redo history
+    Add command to redo history
     
     Positional arguments:
-    action -- action to be registered
+    command -- command to be registered
     """
-    _redo_list.append(action)
+    _redo_list.append(command)
     if len(_redo_list) == 1:
         activate_redo()
 
 def deactivate_undo():
-    """ Deactivate undo buttons """
+    """Deactivate undo buttons."""
     _menu_undo.set_sensitive(False)
     _tool_undo.set_sensitive(False)
 
 def deactivate_redo():
-    """ Deactivate redo buttons """
+    """Deactivate redo buttons."""
     _menu_redo.set_sensitive(False)
     _tool_redo.set_sensitive(False)
 
 def activate_undo():
-    """ Activate undo buttons """
+    """Activate undo buttons."""
     _menu_undo.set_sensitive(True)
     _tool_undo.set_sensitive(True)
 
 def activate_redo():
-    """ Activate redo buttons """
+    """Activate redo buttons."""
     _menu_redo.set_sensitive(True)
     _tool_redo.set_sensitive(True)
 
-class ActionDrawStroke:
-    """ Draw stroke action """
+class CommandDrawStroke:
+    """Draw stroke command."""
     def __init__(self, stroke, page):
         self.stroke = stroke
         self.page = page
@@ -151,8 +145,8 @@ class ActionDrawStroke:
     def redo(self):
         self.page.new_stroke(self.stroke, send_to_network=True)
 
-class ActionDeleteStroke:
-    """ Delete stroke action """
+class CommandDeleteStroke:
+    """Delete stroke command."""
     def __init__(self, stroke, page):
         self.stroke = stroke
         self.page = page
@@ -162,4 +156,3 @@ class ActionDeleteStroke:
 
     def redo(self):
         self.page.delete_stroke(self.stroke, send_to_network=True, register_in_history=False)
-       

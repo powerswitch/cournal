@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -47,6 +48,7 @@ class Page:
         
         self.widget = None
         self.width, self.height = pdf.get_size()
+        self.search_marker = None
     
     def new_stroke(self, stroke, send_to_network=False):
         """
@@ -114,7 +116,7 @@ class Page:
         Keyword arguments:
         send_to_network -- Set to True, to send the request for deletion the server
                            (defaults to False)
-        register_in_history -- Make this action undoable
+        register_in_history -- Make this command undoable
         """
         self.layers[0].strokes.remove(stroke)
         if self.widget:
