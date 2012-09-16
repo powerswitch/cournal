@@ -30,11 +30,15 @@ from cournal.document import xojparser
 from cournal.network import network
 from cournal.connectiondialog.connectiondialog import ConnectionDialog
 from cournal.aboutdialog import AboutDialog
+from cournal.document import history
+from cournal.document import search
 
 pdf_filter = Gtk.FileFilter()
 pdf_filter.add_mime_type("application/pdf")
+pdf_filter.add_pattern("*.pdf")
 xoj_filter = Gtk.FileFilter()
 xoj_filter.add_mime_type("application/x-xoj")
+xoj_filter.add_pattern("*.xoj")
 
 LINEWIDTH_SMALL = 0.7
 LINEWIDTH_NORMAL = 1.5
@@ -66,69 +70,79 @@ class MainWindow(Gtk.Window):
         builder.set_translation_domain("cournal")
         builder.add_from_file(cournal.__path__[0] + "/mainwindow.glade")
         self.add(builder.get_object("outer_box"))
-        
-        # Initialize the main journal layout
+        self.add_accel_group(builder.get_object("accelgroup"))
         self.layout = None
         self.overlay = builder.get_object("overlay")
         self.scrolledwindow = builder.get_object("scrolledwindow")
         
-        # Menu Bar:
-        self.menu_open_xoj = builder.get_object("imagemenuitem_open_xoj")
-        self.menu_open_pdf = builder.get_object("imagemenuitem_open_pdf")
-        self.menu_connect = builder.get_object("imagemenuitem_connect")
-        self.menu_save = builder.get_object("imagemenuitem_save")
-        self.menu_save_as = builder.get_object("imagemenuitem_save_as")
-        self.menu_export_pdf = builder.get_object("imagemenuitem_export_pdf")
-        self.menu_import_xoj = builder.get_object("imagemenuitem_import_xoj")
-        self.menu_quit = builder.get_object("imagemenuitem_quit")
-        self.menu_about = builder.get_object("imagemenuitem_about")
+        # Actions (always sensitive):
+        action_open_xoj = builder.get_object("action_open_xoj")
+        action_open_pdf = builder.get_object("action_open_pdf")
+        action_quit = builder.get_object("action_quit")
+        action_about = builder.get_object("action_about")
         
-        # Toolbar:
-        self.tool_open_pdf = builder.get_object("tool_open_pdf")
-        self.tool_save = builder.get_object("tool_save")
-        self.tool_connect = builder.get_object("tool_connect")
-        self.tool_zoom_in = builder.get_object("tool_zoom_in")
-        self.tool_zoom_out = builder.get_object("tool_zoom_out")
-        self.tool_zoom_100 = builder.get_object("tool_zoom_100")
-        self.tool_pen_color = builder.get_object("tool_pen_color")
-        self.tool_pensize_small = builder.get_object("tool_pensize_small")
-        self.tool_pensize_normal = builder.get_object("tool_pensize_normal")
-        self.tool_pensize_big = builder.get_object("tool_pensize_big")
+        # Actions (document_specific):
+        action_connect = builder.get_object("action_connect")
+        action_save = builder.get_object("action_save")
+        action_save_as = builder.get_object("action_save_as")
+        action_export_pdf = builder.get_object("action_export_pdf")
+        action_import_xoj = builder.get_object("action_import_xoj")
+        action_undo = builder.get_object("action_undo")
+        action_redo = builder.get_object("action_redo")
+        action_search = builder.get_object("action_search")
+        action_zoom_in = builder.get_object("action_zoom_in")
+        action_zoom_out = builder.get_object("action_zoom_out")
+        action_zoom_fit = builder.get_object("action_zoom_fit")
+        action_pensize_small = builder.get_object("action_pensize_small")
+        action_pensize_normal = builder.get_object("action_pensize_normal")
+        action_pensize_big = builder.get_object("action_pensize_big")
+        tool_pen_color = builder.get_object("tool_pen_color")
+        self.actiongroup_document_specific = builder.get_object("actiongroup_document_specific")
+        self.actiongroup_document_specific.set_sensitive(False)
+        builder.get_object("tool_pensize_normal").set_active(True)
+        
+        # Workaround for bug https://bugzilla.gnome.org/show_bug.cgi?id=671786
+        if not Gtk.check_version(3,4,5) == None and not Gtk.check_version(3,6,0) == None:
+            # Gtk 3.4 without bugfix
+            a = builder.get_object("accelgroup")
+            a.connect_by_path(action_open_xoj.get_accel_path(), lambda a,b,c,d: action_open_xoj.activate())
+            a.connect_by_path(action_open_pdf.get_accel_path(), lambda a,b,c,d: action_open_pdf.activate())
+            a.connect_by_path(action_quit.get_accel_path(), lambda a,b,c,d: action_quit.activate())
+            a.connect_by_path(action_about.get_accel_path(), lambda a,b,c,d: action_about.activate())
+            a.connect_by_path(action_connect.get_accel_path(), lambda a,b,c,d: action_connect.activate())
+            a.connect_by_path(action_save.get_accel_path(), lambda a,b,c,d: action_save.activate())
+            a.connect_by_path(action_save_as.get_accel_path(), lambda a,b,c,d: action_save_as.activate())
+            a.connect_by_path(action_export_pdf.get_accel_path(), lambda a,b,c,d: action_export_pdf.activate())
+            a.connect_by_path(action_import_xoj.get_accel_path(), lambda a,b,c,d: action_import_xoj.activate())
+            a.connect_by_path(action_undo.get_accel_path(), lambda a,b,c,d: action_undo.activate())
+            a.connect_by_path(action_redo.get_accel_path(), lambda a,b,c,d: action_redo.activate())
+            a.connect_by_path(action_search.get_accel_path(), lambda a,b,c,d: action_search.activate())
+            a.connect_by_path(action_zoom_in.get_accel_path(), lambda a,b,c,d: action_zoom_in.activate())
+            a.connect_by_path(action_zoom_out.get_accel_path(), lambda a,b,c,d: action_zoom_out.activate())
+            a.connect_by_path(action_zoom_fit.get_accel_path(), lambda a,b,c,d: action_zoom_fit.activate())
+            a.connect_by_path(action_pensize_small.get_accel_path(), lambda a,b,c,d: action_pensize_small.activate())
+            a.connect_by_path(action_pensize_normal.get_accel_path(), lambda a,b,c,d: action_pensize_normal.activate())
+            a.connect_by_path(action_pensize_big.get_accel_path(), lambda a,b,c,d: action_pensize_big.activate())
 
-        self.menu_connect.set_sensitive(False)
-        self.menu_save.set_sensitive(False)
-        self.menu_save_as.set_sensitive(False)
-        self.menu_export_pdf.set_sensitive(False)
-        self.menu_import_xoj.set_sensitive(False)
-        self.tool_save.set_sensitive(False)
-        self.tool_connect.set_sensitive(False)
-        self.tool_zoom_in.set_sensitive(False)
-        self.tool_zoom_out.set_sensitive(False)
-        self.tool_zoom_100.set_sensitive(False)
-        self.tool_pen_color.set_sensitive(False)
-        self.tool_pensize_small.set_sensitive(False)
-        self.tool_pensize_normal.set_sensitive(False)
-        self.tool_pensize_big.set_sensitive(False)
-        
-        self.menu_open_xoj.connect("activate", self.run_open_xoj_dialog)
-        self.menu_open_pdf.connect("activate", self.run_open_pdf_dialog)
-        self.menu_connect.connect("activate", self.run_connection_dialog)
-        self.menu_save.connect("activate", self.save)
-        self.menu_save_as.connect("activate", self.run_save_as_dialog)
-        self.menu_export_pdf.connect("activate", self.run_export_pdf_dialog)
-        self.menu_import_xoj.connect("activate", self.run_import_xoj_dialog)
-        self.menu_quit.connect("activate", lambda _: self.destroy())
-        self.menu_about.connect("activate", self.run_about_dialog)
-        self.tool_open_pdf.connect("clicked", self.run_open_pdf_dialog)
-        self.tool_save.connect("clicked", self.save)
-        self.tool_connect.connect("clicked", self.run_connection_dialog)
-        self.tool_zoom_in.connect("clicked", self.zoom_in)
-        self.tool_zoom_out.connect("clicked", self.zoom_out)
-        self.tool_zoom_100.connect("clicked", self.zoom_100)
-        self.tool_pen_color.connect("color-set", self.change_pen_color)
-        self.tool_pensize_small.connect("clicked", self.change_pen_size, LINEWIDTH_SMALL)
-        self.tool_pensize_normal.connect("clicked", self.change_pen_size, LINEWIDTH_NORMAL)
-        self.tool_pensize_big.connect("clicked", self.change_pen_size, LINEWIDTH_BIG)
+        action_open_xoj.connect("activate", self.run_open_xoj_dialog)
+        action_open_pdf.connect("activate", self.run_open_pdf_dialog)
+        action_connect.connect("activate", self.run_connection_dialog)
+        action_save.connect("activate", self.save)
+        action_save_as.connect("activate", self.run_save_as_dialog)
+        action_export_pdf.connect("activate", self.run_export_pdf_dialog)
+        action_import_xoj.connect("activate", self.run_import_xoj_dialog)
+        action_quit.connect("activate", lambda _: self.destroy())
+        action_about.connect("activate", self.run_about_dialog)
+        action_undo.connect("activate", history.undo)
+        action_redo.connect("activate", history.redo)
+        action_search.connect("activate", self.show_search_bar)
+        action_zoom_in.connect("activate", self.zoom_in)
+        action_zoom_out.connect("activate", self.zoom_out)
+        action_zoom_fit.connect("activate", self.zoom_fit)
+        tool_pen_color.connect("color-set", self.change_pen_color)
+        action_pensize_small.connect("activate", self.change_pen_size, LINEWIDTH_SMALL)
+        action_pensize_normal.connect("activate", self.change_pen_size, LINEWIDTH_NORMAL)
+        action_pensize_big.connect("activate", self.change_pen_size, LINEWIDTH_BIG)
     
         # Statusbar:
         self.statusbar_icon = builder.get_object("image_statusbar")
@@ -142,6 +156,20 @@ class MainWindow(Gtk.Window):
         self.statusbar_pagenum_entry.connect("activate", self.jump_to_page)
         self.button_prev_page.connect("clicked", self.jump_to_prev_page)
         self.button_next_page.connect("clicked", self.jump_to_next_page)
+
+        history.init(action_undo, action_redo)
+        
+        # Search bar:
+        self.search_bar = builder.get_object("search_bar")
+        self.search_field = builder.get_object("search_field")
+        self.search_button = builder.get_object("search_button")
+        self.search_close = builder.get_object("search_close")
+        self.hadjustment = self.scrolledwindow.get_hadjustment()
+        
+        self.search_field.connect("insert-text", self.reset_search)
+        self.search_close.connect("clicked", self.hide_search_bar)
+        self.search_button.connect("clicked", self.search_document)
+        self.search_field.connect("activate", self.search_document)
 
     def connect_event(self):
         """
@@ -181,6 +209,62 @@ class MainWindow(Gtk.Window):
             self.overlay.add(self.overlaybox)
         self.overlaybox.connect("destroy", destroyed)
     
+    def search_document(self, menuitem):
+        """
+        Search document
+        """
+        # delete last results marker
+        last_page = search.get_last_result_page()
+        if last_page > -1:
+            for page in self.document.pages:
+                if page.number == int(last_page):
+                    page.widget.delete_search_marker()
+        result_page, result_pos = search.search(self.search_field.get_text())
+        if result_page > -1:
+            self.statusbar_pagenum_entry.set_text(str(result_page+1))
+            for page in self.document.pages:
+                if page.number == int(result_page):
+                    page.widget.draw_search_marker(result_pos)
+                    self.vadjustment.set_value(page.widget.get_allocation().y + page.widget.widget_height * (page.height-result_pos.y2) / page.height)
+                    self.hadjustment.set_value(page.widget.widget_width * result_pos.x1 / page.width)
+        else:
+            self.search_field.modify_fg(0,Gdk.Color(65535,0,0))
+            
+    def show_search_bar(self, menuitem):
+        """
+        Show a search bar at the bottom of the window.
+        """
+        self.search_bar.set_visible(True)
+        self.search_field.modify_fg(0, Gdk.Color(0,0,0))
+        Gtk.Window.set_focus(self, self.search_field)
+
+    def hide_search_bar(self, menuitem):
+        """
+        Hide the search bar.
+        """
+        self.search_bar.set_visible(False)
+        # delete last results marker
+        last_page = search.get_last_result_page()
+        if last_page > -1:
+            for page in self.document.pages:
+                if page.number == int(last_page):
+                    page.widget.delete_search_marker()
+        search.reset()
+
+    def reset_search(self, one, two, three, four):
+        """
+        Reset search.
+        """
+        # delete last results marker
+        self.search_bar.set_visible(True)
+        self.search_field.modify_fg(0, Gdk.Color(0,0,0))
+        last_page = search.get_last_result_page()
+        if last_page > -1:
+            for page in self.document.pages:
+                if page.number == int(last_page):
+                    page.widget.delete_search_marker()
+        search.reset()
+
     def _set_document(self, document):
         """
         Replace the current document (if any) with a new one.
@@ -196,23 +280,7 @@ class MainWindow(Gtk.Window):
         self.scrolledwindow.show_all()
         self.last_filename = None
         
-        self.menu_connect.set_sensitive(True)
-        self.menu_save.set_sensitive(True)
-        self.menu_save_as.set_sensitive(True)
-        self.menu_export_pdf.set_sensitive(True)
-        self.menu_import_xoj.set_sensitive(True)
-        self.tool_save.set_sensitive(True)
-        self.tool_connect.set_sensitive(True)
-        self.tool_zoom_in.set_sensitive(True)
-        self.tool_zoom_out.set_sensitive(True)
-        self.tool_zoom_100.set_sensitive(True)
-        self.tool_pen_color.set_sensitive(True)
-        self.tool_pensize_small.set_sensitive(True)
-        self.tool_pensize_normal.set_sensitive(True)
-        self.tool_pensize_big.set_sensitive(True)
-        self.statusbar_pagenum.set_sensitive(True)
-        self.statusbar_pagenum_entry.set_sensitive(True)
-        
+        self.actiongroup_document_specific.set_sensitive(True)
         if self.document.num_of_pages > 1:
             self.button_next_page.set_sensitive(True)
         
@@ -492,7 +560,7 @@ class MainWindow(Gtk.Window):
         """Zoom out"""
         self.layout.set_zoomlevel(change=-0.2)
     
-    def zoom_100(self, menuitem):
+    def zoom_fit(self, menuitem):
         """Reset Zoom"""
         self.layout.set_zoomlevel(1)
 
