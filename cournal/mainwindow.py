@@ -27,7 +27,7 @@ from cournal.viewer.layout import Layout
 from cournal.viewer.tools import pen
 from cournal.document.document import Document
 from cournal.document import xojparser
-from cournal.network import network
+from cournal.network.multi_net import networks, current_network
 from cournal.connectiondialog.connectiondialog import ConnectionDialog
 from cournal.aboutdialog import AboutDialog
 from cournal.document import history
@@ -56,7 +56,10 @@ class MainWindow(Gtk.Window):
         **args -- Arguments passed to the Gtk.Window constructor
         """
         Gtk.Window.__init__(self, title=_("Cournal"), **args)
-        network.set_window(self)
+        
+        self.active_document = 0 # Number of active Document # TODO: Use Dicts
+        
+        networks[current_network].set_window(self)
         
         self.overlaybox = None
         self.document = None
@@ -619,14 +622,14 @@ class OverlayDialog(Gtk.EventBox):
         
     def disconnect_clicked(self, widget):
         """Disconnect from the server and close the OverlayDialog."""
-        network.disconnect()
+        networks[current_network].disconnect()
         # Call this via a timeout to let the disconnect_event in network.py fire
         GObject.timeout_add(0, self.destroy)
 
     def update(self):
-        if network.is_connected:
-            no_data_seconds = int(time() - network.last_data_received + 0.5)
-            if not network.is_stalled:
+        if networks[current_network].is_connected:
+            no_data_seconds = int(time() - networks[current_network].last_data_received + 0.5)
+            if not networks[current_network].is_stalled:
                 # The connection problems were solved automatically
                 self.destroy()
                 return False

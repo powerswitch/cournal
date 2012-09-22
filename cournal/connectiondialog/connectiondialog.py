@@ -23,6 +23,7 @@ import cournal
 from cournal.connectiondialog.serverdetails import ServerDetails
 from cournal.connectiondialog.connectingpage import ConnectingPage
 from cournal.connectiondialog.documentchooser import DocumentChooser
+from cournal.connectiondialog.loginpage import LoginPage
 
 class ConnectionDialog(Gtk.Dialog):
     """
@@ -48,10 +49,12 @@ class ConnectionDialog(Gtk.Dialog):
         self.server_details = ServerDetails(self, builder)
         self.connecting_page = ConnectingPage(self, builder)
         self.document_chooser = DocumentChooser(self)
+        self.login_page = LoginPage(self)
         
         self.get_content_area().add(grid)
         self.multipage.append_page(self.server_details, None)
         self.multipage.append_page(self.connecting_page, None)
+        self.multipage.append_page(self.login_page, None)
         self.multipage.append_page(self.document_chooser, None)
         
         self.set_modal(False)
@@ -67,11 +70,13 @@ class ConnectionDialog(Gtk.Dialog):
         
         self.connect("response", self.response)
         self.server_details.connect("connecting", self.show_connecting_page)
-        self.server_details.connect("connected", lambda x: self.document_chooser.get_document_list())
+        self.server_details.connect("connected", lambda x: self.set_page(2))
         self.server_details.connect("connection_failed", lambda x: self.set_page(0))
-        self.document_chooser.connect("got_document_list", lambda x: self.set_page(2))
+        self.document_chooser.connect("got_document_list", lambda x: self.set_page(3))
         self.document_chooser.connect("joining_document", self.show_joining_document_page)
         self.document_chooser.connect("joined_document", lambda x: self.destroy())
+        self.login_page.connect("logged_in", lambda x: self.document_chooser.get_document_list())
+        #self.login_page.connect("log_in_failed", lambda x: s)
     
     def show_connecting_page(self, widget, server, port):
         """

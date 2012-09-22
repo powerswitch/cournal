@@ -20,7 +20,7 @@
 
 from cournal.document.layer import Layer
 from cournal.document.stroke import Stroke
-from cournal.network import network
+from cournal.network.multi_net import networks, current_network
 from cournal.document import history
 
 class Page:
@@ -68,7 +68,7 @@ class Page:
         if self.widget:
             self.widget.draw_remote_stroke(stroke)
         if send_to_network:
-            network.new_stroke(self.number, stroke)
+            networks[current_network].new_stroke(self.number, stroke)
         
     def new_unfinished_stroke(self, color, linewidth):
         """
@@ -91,7 +91,7 @@ class Page:
         """
         history.register_draw_stroke(stroke, self)
         stroke.calculate_bounding_box()
-        network.new_stroke(self.number, stroke)
+        networks[current_network].new_stroke(self.number, stroke)
 
     def delete_stroke_with_coords(self, coords):
         """
@@ -121,7 +121,7 @@ class Page:
         if self.widget:
             self.widget.delete_remote_stroke(stroke)
         if send_to_network:
-            network.delete_stroke_with_coords(self.number, stroke.coords)
+            networks[current_network].delete_stroke_with_coords(self.number, stroke.coords)
             if register_in_history:
                 history.register_delete_stroke(stroke, self)
     

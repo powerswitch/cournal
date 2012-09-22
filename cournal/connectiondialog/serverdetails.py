@@ -21,7 +21,7 @@ from gi.repository import Gtk, GObject
 from twisted.internet.defer import Deferred
 
 from cournal.connectiondialog.serverportentry import ServerPortEntry
-from cournal.network import network
+from cournal.network.multi_net import networks, current_network
 
 class ServerDetails(Gtk.Box):
     """
@@ -106,8 +106,8 @@ class ServerDetails(Gtk.Box):
         server -- The hostname of the server to connect to.
         port -- The port on the server
         """
-        network.set_document(self.dialog.parent.document)
-        d = network.connect(server, port)
+        networks[current_network].set_document(self.dialog.parent.document)
+        d = networks[current_network].connect(server, port)
         d.addCallbacks(self.on_connected, self.on_connection_failure)
         
         self.dialog.error = ""

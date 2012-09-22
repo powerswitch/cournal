@@ -32,14 +32,11 @@ DEBUGLEVEL = 3
 PING_INTERVAL = 5
 PING_TIMEOUT = 5
 
-USERNAME = "test"
-PASSWORD = "testpw"
-
 """
 Network communication via one instance of the _Network() class.
 """
 
-class _Network(pb.Referenceable):
+class Network(pb.Referenceable):
     """
     Network communication with Twisted Perspective Broker (RPC-like)
     """
@@ -52,6 +49,7 @@ class _Network(pb.Referenceable):
         self.is_stalled = True
         self.last_data_received = 0
         self.watchdog = None
+        self.is_logged_in = False
     
     def set_document(self, document):
         """
@@ -73,7 +71,7 @@ class _Network(pb.Referenceable):
 
     def connect(self, hostname, port):
         """
-        Connect to a server
+        Connect to a server without logging in
         
         Positional arguments:
         hostname -- The hostname of the server
@@ -84,10 +82,47 @@ class _Network(pb.Referenceable):
         self.factory = pb.PBClientFactory()
         reactor.connectTCP(hostname, port, self.factory)
         
-        d = self.factory.login(credentials.UsernamePassword(USERNAME, PASSWORD),
-                               client=self)
+        d = self.factory.login(credentials.Anonymous(), client=self)
         d.addCallbacks(self.connected, self.connection_failed)
         return d
+
+    def log_in(self, username, password):
+        """
+        Log in given user
+        
+        Positional arguments:
+        username -- name of the user
+        password -- users password
+        """
+        d = self.factory.login(credentials.UsernamePassword(username, password),
+                               client=self)
+        d.addCallbacks(self.logged_in, self.log_in_failed)
+        return d
+
+    def logged_in(self, perspective):
+        """
+        User login succeeded
+        """
+        debug(1, _("Logged in"))
+        # This perspective is a remote reference to our User object. Save it
+        # here, otherwise it will get garbage collected at the end of this
+        # function and the server will think we logged out.
+        self.is_stalled = False
+        self.is_logged_in = True
+        #self.perspective.broker.transport.loseConnection() # Cut anonymous connection
+        self.perspective = perspective
+        self.perspective.notifyOnDisconnect(self.disconnect_event)
+        self.data_received()
+        self.ping()
+        #self.window.connect_event()
+
+    def log_in_failed(self, reason):
+        """
+        User login failed
+        """
+        debug(0, _("Login failed due to: {}").format(reason.getErrorMessage()))
+        self.is_connected = False
+        self.is_logged_in = False
 
     def connected(self, perspective):
         """
@@ -101,12 +136,13 @@ class _Network(pb.Referenceable):
         # This perspective is a remote reference to our User object. Save it
         # here, otherwise it will get garbage collected at the end of this
         # function and the server will think we logged out.
-        self.is_stalled = False
+        #self.is_stalled = False
         self.is_connected = True
+        self.is_logged_in = False
         self.perspective = perspective
-        self.perspective.notifyOnDisconnect(self.disconnect_event)
-        self.data_received()
-        self.ping()
+        #self.perspective.notifyOnDisconnect(self.disconnect_event)
+        #self.data_received()
+        #self.ping()
         self.window.connect_event()
     
     def connection_failed(self, reason):
@@ -262,7 +298,7 @@ class _Network(pb.Referenceable):
             self.watchdog = reactor.callLater(PING_INTERVAL + PING_TIMEOUT, self.connection_problems)
     
 # This is, what will be exported and included by other modules:
-network = _Network()
+#network = _Network()
         
 def debug(level, *args):
     """Helper function for debug output"""

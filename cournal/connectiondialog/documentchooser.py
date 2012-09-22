@@ -21,7 +21,7 @@
 from gi.repository import Gtk, GObject
 
 import cournal
-from cournal.network import network
+from cournal.network.multi_net import networks, current_network
 
 class DocumentChooser(Gtk.Box):
     """
@@ -76,11 +76,11 @@ class DocumentChooser(Gtk.Box):
         """
         if response_id == Gtk.ResponseType.ACCEPT:
             documentname = self.doc_name.get_text()
-            self.deferred = network.join_document_session(documentname)
+            self.deferred = networks[current_network].join_document_session(documentname)
             self.deferred.addCallback(self.joined_document)
             self.emit("joining_document", documentname)
         else:
-            network.disconnect()
+            networks[current_network].disconnect()
             self.dialog.destroy()
     
     def joined_document(self, _):
@@ -99,9 +99,12 @@ class DocumentChooser(Gtk.Box):
 
     def get_document_list(self):
         """Get the list of all remote documents from the server."""
-        d = network.get_document_list()
-        d.addCallback(self.got_document_list)
+        d = networks[current_network].get_document_list()
+        d.addCallbacks(self.got_document_list, self.doc_list_error)
         return d
+    
+    def doc_list_error(self, error):
+        print("ERROR:", error)
     
     def got_document_list(self, documents):
         """

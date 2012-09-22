@@ -228,6 +228,8 @@ class CournalRealm:
                        (in our case pb.IPerspective)
         """
         assert pb.IPerspective in interfaces
+        #if avatarID == checkers.ANONYMOUS:
+        #   Do something
         user = User(avatarID, self.server)
         user.attached(mind)
         return pb.IPerspective, user, lambda a=user:a.detached(mind)
@@ -499,7 +501,8 @@ def main():
     atexit.register(realm.server.exit)
     checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
     checker.addUser(USERNAME, PASSWORD)
-    p = portal.Portal(realm, [checker])
+    anonymous_checker = checkers.AllowAnonymousAccess()
+    p = portal.Portal(realm, [checker, anonymous_checker])
     
     try:
         reactor.listenTCP(port, pb.PBServerFactory(p))
