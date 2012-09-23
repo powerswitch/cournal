@@ -76,7 +76,8 @@ class ConnectionDialog(Gtk.Dialog):
         self.document_chooser.connect("joining_document", self.show_joining_document_page)
         self.document_chooser.connect("joined_document", lambda x: self.destroy())
         self.login_page.connect("logged_in", lambda x: self.document_chooser.get_document_list())
-        #self.login_page.connect("log_in_failed", lambda x: s)
+        self.login_page.connect("logging_in", self.show_logging_in_page)
+        self.login_page.connect("log_in_failed", lambda x: self.set_page(2))
     
     def show_connecting_page(self, widget, server, port):
         """
@@ -102,6 +103,17 @@ class ConnectionDialog(Gtk.Dialog):
         self.set_page(1)
         self.connecting_page.message = _("Opening {} ...").format(documentname)
         self.connecting_page.deferred = widget.deferred
+
+    def show_logging_in_page(self, widget, username):
+        """
+        Show a widget, indicating that a remote document is being opened.
+        
+        Positional arguments:
+        widget -- The previously active widget (normally document_chooser)
+        documentname -- The name of the document we are opening
+        """
+        self.set_page(1)
+        self.connecting_page.message = _("Logging in user {} ...").format(username)
     
     def set_page(self, page):
         """

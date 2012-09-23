@@ -23,6 +23,8 @@ from twisted.spread import pb
 from twisted.internet import reactor
 from twisted.cred import credentials
 
+import hashlib
+
 # 0 - none
 # 1 - minimal
 # 2 - medium
@@ -94,7 +96,7 @@ class Network(pb.Referenceable):
         username -- name of the user
         password -- users password
         """
-        d = self.factory.login(credentials.UsernamePassword(username, password),
+        d = self.factory.login(credentials.UsernamePassword(username, hashlib.sha512(password.encode()).hexdigest()),
                                client=self)
         d.addCallbacks(self.logged_in, self.log_in_failed)
         return d
@@ -163,6 +165,7 @@ class Network(pb.Referenceable):
         """
         if self.is_connected:
             self.perspective.broker.transport.loseConnection()
+            self.window.disconnect_event()
     
     def disconnect_event(self, event):
         """Called, when the client gets disconnected from the server."""

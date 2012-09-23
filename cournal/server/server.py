@@ -47,8 +47,6 @@ DEBUGLEVEL = 3
 DEFAULT_AUTOSAVE_DIRECTORY = os.path.expanduser("~/.cournal")
 DEFAULT_AUTOSAVE_INTERVAL = 60
 DEFAULT_PORT = 6524
-USERNAME = "test"
-PASSWORD = "testpw"
 
 # List of all characters that are allowed in filenames. Must not contain ; and :
 valid_characters = string.ascii_letters + string.digits + ' _()+,.-=^~'
@@ -284,7 +282,16 @@ class User(pb.Avatar):
         """
         debug(2, _("User {} requested document list").format(self.name))
         
+        results = []
+        for document in self.server.documents:
+            if len(self.server.documents[document].users) == 0:
+                results.append(document)
+            else:
+                if self.name in self.server.documents[document].users:
+                    results.append(document)
+        
         return list(self.server.documents.keys())
+        #return results #TODO: Activate, if documents are user dependent
     
     def perspective_join_document(self, documentname):
         """
@@ -499,8 +506,9 @@ def main():
     realm = CournalRealm()
     realm.server = CournalServer(args.autosave_directory, args.autosave_interval)
     atexit.register(realm.server.exit)
-    checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
-    checker.addUser(USERNAME, PASSWORD)
+    #checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
+    checker = checkers.FilePasswordDB("users.txt", caseSensitive=False)
+    #checker.addUser(USERNAME, PASSWORD)
     anonymous_checker = checkers.AllowAnonymousAccess()
     p = portal.Portal(realm, [checker, anonymous_checker])
     

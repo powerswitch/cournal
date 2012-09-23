@@ -27,7 +27,9 @@ class LoginPage(Gtk.Box):
     A widget, which allows the user to browse and open remote documents.
     """
     __gsignals__ = {
-        "logged_in": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
+        "logged_in": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()),
+        "logging_in": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, (str,)),
+        "log_in_failed": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()),
     }
 
     def __init__(self, dialog):
@@ -63,6 +65,7 @@ class LoginPage(Gtk.Box):
         if response_id == Gtk.ResponseType.ACCEPT:
             d = networks[current_network].log_in(self.username.get_text(),self.password.get_text())
             d.addCallback(self.logged_in)
+            self.emit("logging_in", self.username.get_text())
         else:
             networks[current_network].disconnect()
             self.dialog.destroy()            
@@ -71,7 +74,7 @@ class LoginPage(Gtk.Box):
         if networks[current_network].is_logged_in:
             self.emit("logged_in")
         else:
-            #self.emit("log_in_failed")
+            self.emit("log_in_failed")
             self.message_text.show()
     
     def on_map_event(self, _):
