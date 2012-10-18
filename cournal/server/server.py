@@ -147,7 +147,7 @@ class CournalServer:
                     raise ex
         self.obtain_lockfile()
         
-        # Convert saved documents pickled by cournal-server 0.3 or earlier
+        # Convert saved documents pickled by cournal-server 0.2.1 or earlier
         if DEFAULT_AUTOSAVE_DIRECTORY == self.autosave_directory:
             pickle_legacy.run(from_dir=os.path.expanduser("~/.cournal"), to_dir=self.autosave_directory)
         else:
@@ -261,7 +261,7 @@ To run multiple instances concurrently, you need to set a different autosave dir
                 # Try to create a savefile, if it fails deny the document creation
                 filename = docname_to_filename(documentname)
                 try:
-                    file = open(self.autosave_directory + "/" + filename, mode="w")
+                    file = open(os.path.join(self.autosave_directory, filename), mode="w")
                     json.dump([], file)
                     file.close()
                 except Exception as ex:
