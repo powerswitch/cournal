@@ -32,6 +32,7 @@ from cournal.connectiondialog.connectiondialog import ConnectionDialog
 from cournal.aboutdialog import AboutDialog
 from cournal.document import history
 from cournal.document import search
+from cournal.configdialog import ConfigDialog
 
 pdf_filter = Gtk.FileFilter()
 pdf_filter.add_mime_type("application/pdf")
@@ -96,6 +97,7 @@ class MainWindow(Gtk.Window):
         action_pensize_small = builder.get_object("action_pensize_small")
         action_pensize_normal = builder.get_object("action_pensize_normal")
         action_pensize_big = builder.get_object("action_pensize_big")
+        action_config = builder.get_object("action_config")
         tool_pen_color = builder.get_object("tool_pen_color")
         self.actiongroup_document_specific = builder.get_object("actiongroup_document_specific")
         self.actiongroup_document_specific.set_sensitive(False)
@@ -123,6 +125,7 @@ class MainWindow(Gtk.Window):
             a.connect_by_path(action_pensize_small.get_accel_path(), lambda a,b,c,d: action_pensize_small.activate())
             a.connect_by_path(action_pensize_normal.get_accel_path(), lambda a,b,c,d: action_pensize_normal.activate())
             a.connect_by_path(action_pensize_big.get_accel_path(), lambda a,b,c,d: action_pensize_big.activate())
+            a.connect_by_path(action_config.get_accel_path(), lambda a,b,c,d: action_config.activate())
 
         action_open_xoj.connect("activate", self.run_open_xoj_dialog)
         action_open_pdf.connect("activate", self.run_open_pdf_dialog)
@@ -143,6 +146,7 @@ class MainWindow(Gtk.Window):
         action_pensize_small.connect("activate", self.change_pen_size, LINEWIDTH_SMALL)
         action_pensize_normal.connect("activate", self.change_pen_size, LINEWIDTH_NORMAL)
         action_pensize_big.connect("activate", self.change_pen_size, LINEWIDTH_BIG)
+        action_config.connect("activate", self.show_config_dialog)
     
         # Statusbar:
         self.statusbar_icon = builder.get_object("image_statusbar")
@@ -170,6 +174,12 @@ class MainWindow(Gtk.Window):
         self.search_close.connect("clicked", self.hide_search_bar)
         self.search_button.connect("clicked", self.search_document)
         self.search_field.connect("activate", self.search_document)
+
+        # Config
+        self.config = ConfigDialog()
+
+    def show_config_dialog(self, action):
+        self.config.showDialog(cournal.__path__[0])
 
     def connect_event(self):
         """
