@@ -430,7 +430,7 @@ class MainWindow(Gtk.Window):
         def destroyed(widget):
             self._connection_dialog = None
         # Need to hold a reference, so the object does not get garbage collected
-        self._connection_dialog = ConnectionDialog(self)
+        self._connection_dialog = ConnectionDialog(self, self.config)
         self._connection_dialog.connect("destroy", destroyed)
         self._connection_dialog.run_nonblocking()
         

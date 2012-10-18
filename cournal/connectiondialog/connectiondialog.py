@@ -29,7 +29,7 @@ class ConnectionDialog(Gtk.Dialog):
     """
     The "Connect to Server" dialog of Cournal.
     """
-    def __init__(self, parent):
+    def __init__(self, parent, config):
         """
         Constructor.
         
@@ -38,6 +38,7 @@ class ConnectionDialog(Gtk.Dialog):
         """
         Gtk.Dialog.__init__(self)
         self.parent = parent
+        self.config = config
         
         builder = Gtk.Builder()
         builder.set_translation_domain("cournal")
@@ -65,6 +66,9 @@ class ConnectionDialog(Gtk.Dialog):
         self.set_default_response(Gtk.ResponseType.ACCEPT)
         
         self.set_page(0)
+        if self.config.auto_connect:
+            self.current_page.response(None, Gtk.ResponseType.ACCEPT, config=self.config)
+            self.set_page(1)
         
         self.connect("response", self.response)
         self.server_details.connect("connecting", self.show_connecting_page)

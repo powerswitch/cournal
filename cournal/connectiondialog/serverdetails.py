@@ -56,7 +56,7 @@ class ServerDetails(Gtk.Box):
         
         self._server_entry.set_activates_default(True)
     
-    def response(self, widget, response_id):
+    def response(self, widget, response_id, config=None):
         """
         Called, when the user clicked on a button ('Connect' or 'Abort') or
         when the dialog is closed.
@@ -70,8 +70,12 @@ class ServerDetails(Gtk.Box):
             self.dialog.destroy()
             return
         
-        server = self._server_entry.server
-        port = self._server_entry.port
+        if config:
+            server = config.auto_server
+            port = config.auto_port
+        else:
+            server = self._server_entry.server
+            port = self._server_entry.port
         
         if port > 65535 or port < 0:
             self.dialog.error = _("The port must be below 65535")
@@ -112,6 +116,7 @@ class ServerDetails(Gtk.Box):
         
         self.dialog.error = ""
         self.emit("connecting", server, port)
+        # self.config #TODO:
         return d
     
     def on_connected(self, perspective):
