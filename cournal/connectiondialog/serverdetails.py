@@ -55,6 +55,17 @@ class ServerDetails(Gtk.Box):
         grid.attach(self._server_entry, 1, 1, 1, 1)
         
         self._server_entry.set_activates_default(True)
+
+    def set_remembered_values(self, server, port):
+        """
+        Show the remembered values
+        
+        Arguments:
+        server -- remembered server
+        port -- remembered port
+        """
+        self._server_entry.server = server
+        self._server_entry.port = str(port)
     
     def response(self, widget, response_id, config=None):
         """
@@ -85,7 +96,10 @@ class ServerDetails(Gtk.Box):
             if not self.confirm_clear_document():
                return
             self.dialog.parent.document.clear_pages()
-            
+         
+        if config:
+            if config.remember_server:
+                config.register_last_server(server, port)
         self.new_connection(server, port)
             
     def confirm_clear_document(self):
@@ -116,7 +130,6 @@ class ServerDetails(Gtk.Box):
         
         self.dialog.error = ""
         self.emit("connecting", server, port)
-        # self.config #TODO:
         return d
     
     def on_connected(self, perspective):

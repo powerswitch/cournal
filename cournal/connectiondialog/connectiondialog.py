@@ -66,6 +66,8 @@ class ConnectionDialog(Gtk.Dialog):
         self.set_default_response(Gtk.ResponseType.ACCEPT)
         
         self.set_page(0)
+        if self.config.remember_server:
+            self.current_page.set_remembered_values(self.config.last_server, self.config.last_port)
         if self.config.auto_connect:
             self.current_page.response(None, Gtk.ResponseType.ACCEPT, config=self.config)
             self.set_page(1)

@@ -58,14 +58,6 @@ class ServerPortEntry(Gtk.EventBox):
         
         self.port_entry.connect("insert_text", self.port_entry_updated)
     
-    def set_entries(self, server, port):
-        """
-        Set given values into the entries
-        """
-        self.server_entry.set_text(server)
-        self.port_entry.set_text(port)
-        
-    
     def port_entry_updated(self, widget, text, length, position):
         """
         Prevent wrong input in the port entry.
