@@ -18,6 +18,7 @@
 # along with Cournal.  If not, see <http://www.gnu.org/licenses/>.
 
 from time import time
+import os.path
 
 from gi.repository import Gtk, Gdk, GObject
 from gi.repository.GLib import GError
@@ -68,7 +69,7 @@ class MainWindow(Gtk.Window):
         # Bob the builder
         builder = Gtk.Builder()
         builder.set_translation_domain("cournal")
-        builder.add_from_file(cournal.__path__[0] + "/mainwindow.glade")
+        builder.add_from_file(os.path.join(cournal.__path__[0], "mainwindow.glade"))
         self.add(builder.get_object("outer_box"))
         self.add_accel_group(builder.get_object("accelgroup"))
         self.layout = None
@@ -102,8 +103,8 @@ class MainWindow(Gtk.Window):
         builder.get_object("tool_pensize_normal").set_active(True)
         
         # Workaround for bug https://bugzilla.gnome.org/show_bug.cgi?id=671786
-        if not Gtk.check_version(3,4,5) == None and not Gtk.check_version(3,6,0) == None:
-            # Gtk 3.4 without bugfix
+        if not Gtk.check_version(3,6,0) == None:
+            # Gtk 3.4 or older
             a = builder.get_object("accelgroup")
             a.connect_by_path(action_open_xoj.get_accel_path(), lambda a,b,c,d: action_open_xoj.activate())
             a.connect_by_path(action_open_pdf.get_accel_path(), lambda a,b,c,d: action_open_pdf.activate())
@@ -279,7 +280,9 @@ class MainWindow(Gtk.Window):
         self.scrolledwindow.add(self.layout)
         self.scrolledwindow.show_all()
         self.last_filename = None
-        
+
+        self.statusbar_pagenum.set_sensitive(True)
+        self.statusbar_pagenum_entry.set_sensitive(True)
         self.actiongroup_document_specific.set_sensitive(True)
         if self.document.num_of_pages > 1:
             self.button_next_page.set_sensitive(True)
@@ -451,6 +454,8 @@ class MainWindow(Gtk.Window):
             try:
                 document = xojparser.new_document(filename, self)
             except Exception as ex:
+                import traceback
+                traceback.print_tb(ex.__traceback__)
                 print(ex)
                 dialog.destroy()
                 return
