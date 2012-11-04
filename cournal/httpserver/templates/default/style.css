@@ -373,3 +373,106 @@ a:active {
 .preview_area {
     display: inline-block;
 }
+#drawarea {
+    background-color: #fff;
+    border: 1px solid #2E4F99;
+    cursor: crosshair;
+    position: relative;
+}
+
+.tool_left {
+    -webkit-border-radius: 5px 0px 0px 5px;
+    border-radius: 5px 0px 0px 5px;
+    border: 1px solid #2E4F99;
+}
+.tool_middle {
+    border-top: 1px solid #2E4F99;
+    border-bottom: 1px solid #2E4F99;
+    border-right: 1px solid #2E4F99;
+}
+.tool_right {
+    -webkit-border-radius: 0px 5px 5px 0px;
+    border-radius: 0px 5px 5px 0px;
+    margin: 0px 0px 4px 0px;
+    border-top: 1px solid #2E4F99;
+    border-bottom: 1px solid #2E4F99;
+    border-right: 1px solid #2E4F99;
+}
+.tool_single {
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    margin: 0px 0px 4px 0px;
+    border: 1px solid #2E4F99;
+}
+
+.tool_button {
+    width: 60px;
+    height: 30px;
+    text-align: center;
+    line-height: 31px;
+    white-space: nowrap;
+    margin: 0px;
+    padding: 0px;
+    background-image: linear-gradient(bottom, rgb(38,109,145) 10%, rgb(73,148,185) 90%);
+    background-image: -o-linear-gradient(bottom, rgb(38,109,145) 10%, rgb(73,148,185) 90%);
+    background-image: -moz-linear-gradient(bottom, rgb(38,109,145) 10%, rgb(73,148,185) 90%);
+    background-image: -webkit-linear-gradient(bottom, rgb(38,109,145) 10%, rgb(73,148,185) 90%);
+    background-image: -ms-linear-gradient(bottom, rgb(38,109,145) 10%, rgb(73,148,185) 90%);
+
+    background-image: -webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        color-stop(0.1, rgb(38,109,145)),
+        color-stop(0.9, rgb(73,148,185))
+    );
+    cursor: pointer;
+    display: inline-block;
+    /*color: #ffffff*/
+}
+.tool_button:hover {
+    background-image: linear-gradient(bottom, rgb(46,97,120) 10%, rgb(38,109,145) 90%);
+    background-image: -o-linear-gradient(bottom, rgb(46,97,120) 10%, rgb(38,109,145) 90%);
+    background-image: -moz-linear-gradient(bottom, rgb(46,97,120) 10%, rgb(38,109,145) 90%);
+    background-image: -webkit-linear-gradient(bottom, rgb(46,97,120) 10%, rgb(38,109,145) 90%);
+    background-image: -ms-linear-gradient(bottom, rgb(46,97,120) 10%, rgb(38,109,145) 90%);
+
+    background-image: -webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        color-stop(0.1, rgb(46,97,120)),
+        color-stop(0.9, rgb(38,109,145))
+    );
+}
+.tool_button:active {
+    background-image: linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -o-linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -moz-linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -webkit-linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -ms-linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        color-stop(0.1, rgb(174,105,25)),
+        color-stop(0.9, rgb(229,146,51))
+    );
+    /*border: 1px solid #EEB472;*/
+    border-color: #EEB472;
+}
+.tool_active {
+    background-image: linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -o-linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -moz-linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -webkit-linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -ms-linear-gradient(bottom, rgb(174,105,25) 10%, rgb(229,146,51) 90%);
+    background-image: -webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        color-stop(0.1, rgb(174,105,25)),
+        color-stop(0.9, rgb(229,146,51))
+    );
+    border-color: #EEB472;
+}

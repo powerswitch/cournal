@@ -32,5 +32,11 @@ whitelist = [
     "/",
     "/index.html",
     "/documents.html",
-    "/script/svghandler.js"
+    "/script/svghandler.js",
+    #"/app/Cournal.html", 
+    "/app/app.js",
+    "/app/tool.js",
+    "/app/pen.js",
+    "/app/mouse.js",
+    "/app/stroke.js"
 ]

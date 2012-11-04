@@ -85,6 +85,45 @@ Last-Modified: {modified}
             maxpage=maxpage
             )
     
+    def HTML_APP(self, documentname, maxpage):
+        if maxpage > 1:
+            navigation_bar = """
+            <div class='navbar'>
+                <div class='svg_button' id='svg_prev' onclick='prevpage()'> &lt; </div>
+                <div class='svg_button' id='svg_next' onclick='nextpage()'> &gt; </div>
+                <div class='svg_header' id='svg_header'>Page 1 of {maxpage}</div>
+                <div class='clear'></div>
+            </div>""".format(maxpage=maxpage)
+        else:
+            navigation_bar = ""
+
+        return "<h1>Webapp</h1>\n\
+        {navigation_bar}\n\
+        <div id=\"toolbar\" class=\"navbar\">\n\
+            <div class='tool_button tool_single' id='tool_1'>Pen</div>\n\
+            <div class='tool_button tool_single' id='tool_2'>Color</div>\n\
+            <div class='tool_button tool_left' id='tool_small'>\n\
+                Small\n\
+            </div><div class='tool_button tool_middle' id='tool_medium'>\n\
+                Medium\n\
+            </div><div class='tool_button tool_right' id='tool_big'>\n\
+                Big\n\
+            </div>\n\
+        </div>\n\
+        <br \>\n\
+        <canvas id=\"drawarea\" width=\"500px\" height=\"500px\" oncontextmenu=\"return false;\">\n\
+        Sorry, your Browser needs to support Canvas to use Cournal web app.\n\
+        </canvas>\n\
+        <script>\n\
+        documentname = \"{documentname}\";\n\
+        maxpage = {maxpage};\n\
+        </script>\n\
+        <script src=\"stroke.js\"></script>\n\
+        <script src=\"tool.js\"></script>\n\
+        <script src=\"mouse.js\"></script>\n\
+        <script src=\"pen.js\"></script>\n\
+        <script src=\"app.js\"></script>".format(navigation_bar=navigation_bar, documentname=documentname, maxpage=maxpage)
+    
     def HTML_status(self):
         """ Creates a status HTML page"""
         output = """<h1>Server status</h1>

@@ -39,6 +39,7 @@ from twisted.protocols.basic import LineReceiver
 from cournal import __versionstring__ as cournal_version
 from cournal.document.stroke import Stroke
 from cournal.httpserver.httpserver import Httpserver
+from cournal.server.user import User
 
 # 0 - none
 # 1 - minimal
@@ -234,89 +235,6 @@ class CournalRealm:
         user.attached(mind)
         return pb.IPerspective, user, lambda a=user:a.detached(mind)
 
-class User(pb.Avatar):
-    """
-    A remote user.
-    """
-    def __init__(self, name, server):
-        """
-        Constructor
-        
-        Positional arguments:
-        name -- Name of the user
-        server -- A CournalServer object 
-        """
-        debug(1, _("New User connected: {}").format(name))
-        self.name = name
-        self.server = server
-        self.remote = None
-        self.documents = []
-        
-    def __del__(self):
-        """Destructor. Called when the user disconnects."""
-        debug(1, _("User disconnected: {}").format(self.name))
-        
-    def attached(self, mind):
-        """
-        Called by twisted, when the corresponding User connects. In our case, the
-        user object does not exist without a connected user.
-        
-        Positional arguments:
-        mind -- Reference to the remote pb.Referencable object. used for .callRemote()
-        """
-        self.remote = mind
-       
-    def detached(self, mind):
-        """
-        Called by twisted, when the corresponding User disconnects. This object
-        should be destroyed after this method terminated.
-        
-        Positional arguments:
-        mind -- Reference to the remote pb.Referencable object.
-        """
-        self.remote = None
-        for document in self.documents:
-            document.remove_user(self)
-    
-    def perspective_list_documents(self):
-        """
-        Return a list of all our documents.
-        """
-        debug(2, _("User {} requested document list").format(self.name))
-        
-        return list(self.server.documents.keys())
-    
-    def perspective_join_document(self, documentname):
-        """
-        Called by the user to join a document session.
-        
-        Positional arguments:
-        documentname -- Name of the requested document session
-        """
-        debug(2, _("User {} started editing {}").format(self.name, documentname))
-        
-        document = self.server.get_document(documentname)
-        if isinstance(document, Failure):
-            return document
-        document.add_user(self)
-        self.documents.append(document)
-        return document
-    
-    def perspective_ping(self):
-        """Called by clients to verify, that the connection is still up."""
-        return True
-        
-    def call_remote(self, method, *args):
-        """
-        Call a remote method of this user.
-        
-        Positional arguments:
-        method -- Name of the remote method
-        *args -- Arguments of the remote method
-        """
-
-        self.remote.callRemote(method, *args)
-
 class Document(pb.Viewable):
     """
     A Cournal document, having multiple pages.
@@ -387,6 +305,8 @@ class Document(pb.Viewable):
         self.pages[pagenum].strokes.append(stroke)
         
         debug(3, _("New stroke on page {}").format(pagenum + 1))
+        print(stroke.coords)
+        print(stroke.color)
         self.broadcast("new_stroke", pagenum, stroke, except_user=from_user)
         
     def view_delete_stroke_with_coords(self, from_user, pagenum, coords):

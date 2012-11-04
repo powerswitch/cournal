@@ -31,6 +31,8 @@ from cournal.document.document import Document
 from cournal.document import xojparser
 from cournal.httpserver.html import Html
 from cournal.httpserver.whitelist import whitelist
+from cournal.httpserver.xmlparse import XmlParse
+from cournal.server.user import User
 #from cournal.server.util import docname_to_filename
 from gi.repository import Poppler, GLib
 import sys
@@ -62,6 +64,7 @@ class Httpserver(LineReceiver):
         Creates a new HTML parser object
         """
         self.html = Html(self.server.documents, self.transport)
+        self.xml = XmlParse(self.server)
 
     def connectionLost(self, reason):
         """
@@ -79,16 +82,26 @@ class Httpserver(LineReceiver):
         self.html.http_users += 1
         debug(3, "connection {} made".format(self.html.http_users))
         self.html.transport = self.transport
+        self.user = User("WebApp", self.server)
 
         for document in self.server.documents:
-            whitelist.append("/pdf/"+document+".pdf")
-            whitelist.append("/svg/"+document+".svg")
+            if not "/pdf/"+document+".pdf" in whitelist:
+                whitelist.append("/pdf/"+document+".pdf")
+            if not "/svg/"+document+".svg" in whitelist:
+                whitelist.append("/svg/"+document+".svg")
+            if not "/app/"+document+".html" in whitelist:
+                whitelist.append("/app/"+document+".html")
             page_number = 0
             for page in self.server.documents[document].pages:
                 page_number += 1;
-                whitelist.append("/svg/"+document+".svg?page="+str(page_number));
-                whitelist.append("/svg/"+document+".svg?timestamp="+str(page_number));
-            whitelist.append("/svg/"+document+".html")
+                if not "/svg/"+document+".svg?page="+str(page_number) in whitelist:
+                    whitelist.append("/svg/"+document+".svg?page="+str(page_number));
+                if not "/svg/"+document+".svg?timestamp="+str(page_number) in whitelist:
+                    whitelist.append("/svg/"+document+".svg?timestamp="+str(page_number));
+                if not "/app/"+document+".html?page="+str(page_number) in whitelist:
+                    whitelist.append("/app/"+document+".html?page="+str(page_number));
+            if not "/svg/"+document+".html" in whitelist:
+                whitelist.append("/svg/"+document+".html")
 
     def render_web_pdf(self, document_name):
         """
@@ -177,6 +190,23 @@ class Httpserver(LineReceiver):
                     output = self.html.HTML_documents() 
                     status = 200
                     ctype = "text/html; charset=utf-8"
+                # APP
+                elif getfile.startswith("/app/"):
+                    # Get SVG preview HTML page
+                    if getfile.endswith(".html"):
+                        document_name = urllib.parse.unquote(getfile[5:-5])
+                        output = self.html.HTML_APP(
+                            document_name,
+                            len(self.server.documents[document_name].pages)
+                        )
+                        status = 200
+                        ctype = "text/html; charset=utf-8"
+                    # app.js
+                    elif getfile.endswith(".js"):
+                        readfile = open(cournal.__path__[0]+"/httpserver"+getfile,"r")
+                        output = readfile.read()
+                        status = 200
+                        ctype = "application/javascript; charset=utf-8"
                 # SVG
                 elif getfile.startswith("/svg/"):
                     # Get SVG preview HTML page
@@ -277,6 +307,18 @@ class Httpserver(LineReceiver):
                     ctype="text/html; charset=utf-8",
                     status=404
                 )
+        # POST data from web app
+        elif data.decode().upper().startswith("POST"):
+            #getfile = data.decode().split(" ")[1] # get requested file name
+            #print(urllib.parse.unquote(data.decode())[10:-9])
+            self.xml.parse(urllib.parse.unquote(data.decode())[10:-9], self.user)
+            self.html.send(
+                "OK",
+                ctype="text/plain",
+                status=200
+            )
+
+
                 
 def debug(level, *args):
     """Helper function for debug output"""
